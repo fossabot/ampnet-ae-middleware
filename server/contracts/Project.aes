@@ -1,0 +1,241 @@
+contract TokenInterface =
+    function allowance : (address, address) => int
+    function approve : (address, int) => bool
+    function transfer : (address, int) => bool
+    function transfer_from : (address, address, int) => bool
+
+contract CoopInterface =
+    function token : () => TokenInterface
+    function owner : () => address
+
+contract OrgInterface =
+    function is_verified : () => bool
+    function coop : () => CoopInterface
+    function owner : () => address
+
+contract Project =
+    record state = {
+        organization               : OrgInterface,
+        minInvestmentPerUser       : int,
+        maxInvestmentPerUser       : int,
+        investmentCap              : int,
+        endsAt                     : int,
+        investors                  : map(int, address),
+        investments                : map(address, int),
+        totalFundsRaised           : int,
+        payoutInProcess            : bool,
+        revenueToSplit             : int,
+        nextInvestorPayoutIndex    : int,
+        revenue_mint_batch_size    : int }
+
+    public stateful function init(
+        organization: OrgInterface, 
+        minInvestmentPerUser: int,
+        maxInvestmentPerUSer: int,
+        investmentCap: int,
+        endsAt: int
+        ) : state =
+
+        require(
+            Call.caller == organization.owner(),
+            "Must be organization owner to be able to create Project.")
+        require(
+            organization.is_verified(),
+            "Organization must have an active wallet before it can create new Project.")
+
+        { organization = organization,
+          minInvestmentPerUser = minInvestmentPerUser,
+          maxInvestmentPerUser = maxInvestmentPerUSer,
+          investmentCap = investmentCap,
+          endsAt = endsAt,
+          investors = {},
+          investments = {},
+          totalFundsRaised = 0,
+          payoutInProcess = false,
+          revenueToSplit = 0,
+          nextInvestorPayoutIndex = 0,
+          revenue_mint_batch_size = 10 }   // rethink about this constant (what value should it be? can we change it afterwards? etc..)
+    
+    public stateful function add_investments(investmentsList: list((address, int))) =
+        require(
+            Call.caller == state.organization.coop().owner(),
+            "Only Cooperative can manually add new investments!")
+
+        require(
+            !is_completely_funded(), 
+            "Can not add new investments. Project already completely funded.")
+
+        require(
+            !has_funding_expired(),
+            "Can not add new investments. Project expired before it was completely funded.")
+
+        recursive_investment_add(investmentsList)
+
+    public stateful function invest() =
+        let token = state.organization.coop().token()
+        let amount = token.allowance(Call.caller, Contract.address)
+        
+        check_investment_preconditions(Call.caller, amount)
+        token.transfer_from(Call.caller, Contract.address, amount)
+        persist_investment(Call.caller, amount)
+
+
+    public stateful function withdraw(tokenIssuer: address, amount: int) =
+        require(
+            is_completely_funded(),
+            "Project investment cap not reached! Cannot withdraw funds.")
+        
+        require(
+            only_organization_admin(),
+            "Only organization owner can request withdrawal of project funds.")
+
+        state.organization.coop().token().approve(tokenIssuer, amount)
+    
+    public stateful function start_revenue_shares_payout(revenue: int) =
+        require(
+            only_organization_admin(),
+            "Only organization owner can initiate revenue shares payout.")
+
+        require(
+            is_completely_funded(),
+            "Cannot start revenue share payout on project which is still in funding phase.")
+
+        require(
+            revenue > 0,
+            "Revenue is zero. Aborting.")
+        
+        require(
+            !state.payoutInProcess,
+            "Cannot withdraw funds while revenue share payout is in process.")
+        
+        put(state{
+            revenueToSplit = revenue,
+            payoutInProcess = true,
+            nextInvestorPayoutIndex = 0 })
+    
+    public stateful function payout_revenue_shares() : bool =
+        require(
+            only_organization_admin(),
+            "Only organization owner can payout revenue shares batch.")
+
+        require(
+            is_completely_funded(),
+            "Cannot start payout revenue shares batch while project is still in funding phase.")
+        
+        require(
+            state.payoutInProcess,
+            "Must call startRevenueSharesPayout(revenue) before actual payout process is executed.")
+
+        let numOfInvestors = Map.size(state.investors)
+        
+        let lastInvestorIndex = numOfInvestors - 1
+        let lastBatchIndex = state.nextInvestorPayoutIndex + state.revenue_mint_batch_size - 1
+
+        let fromIndex = state.nextInvestorPayoutIndex
+        let toIndex =
+            if (lastInvestorIndex < lastBatchIndex)
+                lastInvestorIndex
+            else
+                lastBatchIndex
+        
+        let revenue = state.revenueToSplit
+
+        if (toIndex == lastInvestorIndex)
+            put(state{
+                payoutInProcess = false,
+                revenueToSplit = 0,
+                nextInvestorPayoutIndex = 0 })
+        else
+            put(state{ nextInvestorPayoutIndex = toIndex + 1 })
+        
+        recursive_revenue_batch_payout(fromIndex, toIndex, revenue)
+        state.payoutInProcess
+
+    public function get_investment() : int = state.investments[Call.caller = 0]
+
+    public function get_investments() : map(address, int) = state.investments
+
+    public function get_investors() : list((int, address)) = Map.to_list(state.investors)
+
+    public function has_funding_expired() : bool = Chain.timestamp > state.endsAt
+
+    public function total_funds_raised() : int = state.totalFundsRaised
+
+    public function is_completely_funded() : bool = state.totalFundsRaised == state.investmentCap
+
+    private function only_organization_admin() : bool = Call.caller == state.organization.owner()
+
+    private function require(b : bool, err : string) =
+        if(!b) 
+            abort(err)
+
+    private stateful function recursive_revenue_batch_payout(
+        currentInvestorIndex: int, 
+        lastInvestorIndex: int,
+        revenue: int) =
+        let investor = state.investors[currentInvestorIndex]
+        let investment = state.investments[investor]
+        let share = revenue * investment / state.totalFundsRaised
+
+        state.organization.coop().token().transfer(investor, share)
+
+        if (currentInvestorIndex < lastInvestorIndex)
+            recursive_revenue_batch_payout(currentInvestorIndex + 1, lastInvestorIndex, revenue)
+
+
+    private stateful function recursive_investment_add(investments: list((address, int))) : int =
+        switch (investments)
+            investment::investments' =>
+                switch (investment)
+                    (addr, amount) =>
+                        check_investment_preconditions(addr, amount)
+                        persist_investment(addr, amount)
+                1 + recursive_investment_add(investments')
+            [] => 0
+            
+
+    private function check_investment_preconditions(investor: address, amount: int) =
+        let usersPreviousTotalInvestment = state.investments[investor = 0]
+        let usersNewTotalInvestment = usersPreviousTotalInvestment + amount
+        let projectNewTotalInvestment = state.totalFundsRaised + amount
+        let projectRemainingTotalInvestment = state.investmentCap - projectNewTotalInvestment
+
+        require(
+            state.totalFundsRaised < state.investmentCap, 
+            "Can not invest, project already completely funded.")
+
+        require(
+            amount > 0,
+            "Can not invest zero tokens!")
+        
+        require(
+            usersNewTotalInvestment =< state.maxInvestmentPerUser,
+            "User's investment will surpass maximum per-user investment for this project. Aborting.")
+
+        require(
+            usersNewTotalInvestment >= state.minInvestmentPerUser,
+            "User's investment does not meet required minimum per-user investment for this project. Aborting.")
+        
+        require(
+            projectNewTotalInvestment =< state.investmentCap,
+            "User's investment will make total funds raised greater than project's investment cap. Aborting.")
+
+        require(
+            projectRemainingTotalInvestment == 0 || projectRemainingTotalInvestment >= state.minInvestmentPerUser,
+            "User's investment will leave tiny fraction of project non-funded. Enlarge your investment. Aborting.")
+
+        require(
+            !has_funding_expired(),
+            "Project funding has ended.")
+
+    private stateful function persist_investment(investor: address, amount: int) = 
+        if (!Map.member(investor, state.investments))
+            let newInvestorIndex = Map.size(state.investors)
+            put(state{ investors[newInvestorIndex] = investor })
+
+        put(state{
+            investments[investor = 0] @ investment = investment + amount,
+            totalFundsRaised @ raised = raised + amount })
+
+
+
