@@ -11,11 +11,14 @@ let projSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'Projec
 module.exports = {
     coop: {
         encodeAddWallet: async function(wallet) {
-            return axios.post(`${config.compiler.host}/encode-calldata`, {
+            let response = await axios.post(`${config.compiler.host}/encode-calldata`, {
                 "function" : "add_wallet",
                 "arguments" : [ wallet ],
                 "source" : coopSource
+            }).catch(function(error) {
+                console.log(error)
             })
+            return response.data.calldata
         }
     }
 }
