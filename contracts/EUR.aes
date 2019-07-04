@@ -18,7 +18,7 @@ contract EUR =
 
   private function lookup_by_address(k : address, m, v) = Map.lookup_default(k, m, v)
       
-  public function transfer_ownership(newOwner: address) =
+  public stateful function transfer_ownership(newOwner: address) =
     only_owner()
     put(state{ owner = newOwner })
 
@@ -38,7 +38,7 @@ contract EUR =
     only_coop_user(spender)
 
     require(value > 0, "Value is sub zero")
-    require(spender != #0, "Invalid spender address")
+    // require(spender != #0, "Invalid spender address")
 
     put(state{ allowed[(Call.caller, spender)] = value })
 
@@ -47,7 +47,7 @@ contract EUR =
   private stateful function _transfer(from: address, to: address, value: int) : bool =
     require(value > 0, "Value is sub zero")
     require(value =< balance_of(from), "Not enough balance")
-    require(to != #0, "Invalid address")
+    // require(to != #0, "Invalid address")
 
     put(state{
       balances[from] = balance_of(from) - value,
@@ -68,7 +68,7 @@ contract EUR =
     true
 
   public stateful function increase_allowance(spender: address, addedValue: int) : bool =
-    require(spender != #0, "Invalid address")
+    // require(spender != #0, "Invalid address")
     only_coop_user(Call.caller)
     only_coop_user(spender)
     put(state{ allowed[(Call.caller, spender)] = state.allowed[(Call.caller, spender)] + addedValue })
@@ -76,7 +76,7 @@ contract EUR =
     true
 
   public stateful function decrease_allowance(spender: address, subtractedValue: int) : bool =
-    require(spender != #0, "Invalid address")
+    // require(spender != #0, "Invalid address")
     only_coop_user(Call.caller)
     only_coop_user(spender)
     put(state{ allowed[(Call.caller, spender)] = state.allowed[(Call.caller, spender)] - subtractedValue })
@@ -86,7 +86,7 @@ contract EUR =
   public stateful function mint(account: address, value: int) : bool =
     only_owner()
     only_coop_user(account)
-    require(account != #0, "Invalid address")
+    // require(account != #0, "Invalid address")
 
     put(state{ totalSupply = state.totalSupply + value,
           balances[account] = balance_of(account) + value })

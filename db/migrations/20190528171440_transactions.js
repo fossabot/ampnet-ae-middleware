@@ -10,7 +10,7 @@ exports.up = function(knex, Promise) {
         table.integer('amount');
         table.string('wallet');
         table.timestamp('created_at', { useTz: true }).notNullable();
-        table.timestamp('processed_at', { useTz: true})
+        table.timestamp('processed_at', { useTz: true});
       });
 };
 

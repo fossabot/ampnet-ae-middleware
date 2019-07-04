@@ -13,7 +13,8 @@ async function init() {
         internalUrl: config.node.internalHost,
         keypair: config.node.keypair,
         nativeMode: true,
-        networkId: 'ae_devnet'
+        networkId: 'ae_devnet',
+        compilerUrl: config.compiler.host
     })
 }
 

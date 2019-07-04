@@ -3,6 +3,9 @@ const path = require('path')
 const protoLoader = require('@grpc/proto-loader')
 const grpc = require('grpc')
 
+// config
+let config = require('../env.json')[process.env.NODE_ENV || 'development']
+
 // services
 const txSvc = require('../service/transaction')
 const coopSvc = require('../service/coop')
@@ -18,7 +21,7 @@ const packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet
 let server
 
 module.exports = {
-    start: async function() {
+    start: async function() {        
         // Initiallize Aeternity client
         await client.init()
 
@@ -61,8 +64,7 @@ module.exports = {
             postVaultTransaction: txSvc.postVaultTx
         });
 
-        // gRPC server
-        server.bind('localhost:50051', grpc.ServerCredentials.createInsecure());
+        server.bind(config.grpc.url, grpc.ServerCredentials.createInsecure());
         return server.start();
     },
     stop: async function() {

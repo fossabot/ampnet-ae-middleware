@@ -1,18 +1,16 @@
 const client = require('../ae/client')
 const compiler = require('../ae/compiler')
+const contracts = require('../ae/contracts')
 const { AEProtocol } = require('airgap-coin-lib')
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
 module.exports = {
     addWallet: async function(call, callback) {
         let callData = await compiler.coop.encodeAddWallet(call.request.wallet)
-        console.log("callerId", call.request.from)
-        console.log("contractId", config.contracts.coop)
-        console.log("callData", callData)
-        
+        let coopAddress = contracts.getCoopAddress()    
         let tx = await client.instance().contractCallTx({
             callerId : call.request.from,
-            contractId : config.contracts.coop,
+            contractId : coopAddress,
             abiVersion : 1,
             amount : 0,
             gas : 10000,
