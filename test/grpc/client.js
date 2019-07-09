@@ -45,7 +45,7 @@ module.exports = {
         return new Promise(resolve => {
             client.postTransaction({
                 data: data,
-                txType: 1
+                txType: txType
             }, (err, result) => {
                 if (err != null) {
                     throw new Error(err)

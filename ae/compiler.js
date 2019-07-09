@@ -1,12 +1,6 @@
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
-let fs = require('fs')
-let path = require('path')
 let axios = require('axios')
-
-let coopSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'Coop.aes')).toString()
-let eurSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'EUR.aes')).toString()
-let orgSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'Organization.aes')).toString()
-let projSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'Project.aes')).toString()
+let contracts = require('./contracts')
 
 module.exports = {
     coop: {
@@ -14,11 +8,21 @@ module.exports = {
             let response = await axios.post(`${config.compiler.host}/encode-calldata`, {
                 "function" : "add_wallet",
                 "arguments" : [ wallet ],
-                "source" : coopSource
+                "source" : contracts.coopSource
             }).catch(function(error) {
                 console.log(error)
             })
             return response.data.calldata
         }
+    },
+    decodeCalldata: async function(source, fn, calldata) {
+        let response = await axios.post(`${config.compiler.host}/decode-calldata/source`, {
+            "source" : source,
+            "function" : fn,
+            "calldata" : calldata
+        }).catch(function(error) {
+            console.log("DECODE CALLDATA")
+        })
+        return response.data
     }
 }
