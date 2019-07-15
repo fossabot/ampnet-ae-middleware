@@ -6,19 +6,6 @@ let config = require('../../env.json')[process.env.NODE_ENV || 'development']
 
 let client
 
-function promisify(task, data) {
-    console.log("task", task)
-    return new Promise(resolve => {
-        task(data, (err, result) => {
-            if (err != null) {
-                throw new Error(err)
-            } else {
-                resolve(result)
-            }
-        })
-    })
-}
-
 module.exports = {
     start: async function() {
         let protoPath = path.resolve(__dirname, '../../proto/blockchain-service.proto');

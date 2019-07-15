@@ -1,27 +1,29 @@
 // requirements
-const path = require('path')
-const protoLoader = require('@grpc/proto-loader')
-const grpc = require('grpc')
+let path = require('path')
+let protoLoader = require('@grpc/proto-loader')
+let grpc = require('grpc')
 
 // config
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
 // services
-const txSvc = require('../service/transaction')
-const coopSvc = require('../service/coop')
+let txSvc = require('../service/transaction')
+let coopSvc = require('../service/coop')
 
 // client
-const client = require('../ae/client')
+let client = require('../ae/client')
 
 // grpc service definition
-const protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain-service.proto'))
-const packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.crowdfunding.proto
+let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain-service.proto'))
+let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.crowdfunding.proto
 
 // holds running grpc server instance
 let server
 
 module.exports = {
-    start: async function() {        
+    start: async function() {
+        console.log("proto definition", protoDefinition)
+        console.log("package definition", packageDefinition)        
         // Initiallize Aeternity client
         await client.init()
 
@@ -60,8 +62,7 @@ module.exports = {
             // getProjectCurrentTotalInvestment: getProjectCurrentTotalInvestment,
             // getProjectTotalInvestmentForUser: getProjectTotalInvestmentForUser,
             // isProjectCompletelyFunded: isProjectCompletelyFunded,
-            postTransaction: txSvc.postTx,
-            postVaultTransaction: txSvc.postVaultTx
+            postTransaction: txSvc.postTx
         });
 
         server.bind(config.grpc.url, grpc.ServerCredentials.createInsecure());

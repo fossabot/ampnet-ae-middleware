@@ -316,6 +316,5 @@ service BlockchainService {
     // Transactions
 
     rpc postTransaction(PostTxRequest) returns (PostTxResponse);
-    rpc postVaultTransaction(PostVaultTxRequest) returns (PostTxResponse);
 
 }

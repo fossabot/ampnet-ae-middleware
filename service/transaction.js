@@ -1,16 +1,18 @@
 const { TxBuilder: TxBuilder } = require('@aeternity/aepp-sdk')
+
 const client = require('../ae/client')
 const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
-const TX_STATE = enums.txState
-const TX_TYPE = enums.txType
 const contracts = require('../ae/contracts')
 const config = require('../env.json')[process.env.NODE_ENV || 'development']
 const compiler = require('../ae/compiler')
 
+const TX_STATE = enums.txState
+const TX_TYPE = enums.txType
+
 async function checkTxCaller(tx) {
     let callerId = tx.callerId
-    console.log("config", config)
+
     let coopAuthorityId = config.contracts.coop.owner
     let issuingAuthorityId = config.contracts.eur.owner
     
@@ -30,8 +32,6 @@ async function checkTxType(expectedFunctionName, actualFunctionName) {
 }
 
 async function persistTransaction(tx, hash, calldata, type) {
-    console.log("persist tx")
-    console.log("type", type)
     let record
     switch (type) {
         case TX_TYPE.WALLET_CREATE:
@@ -80,31 +80,32 @@ async function persistTransaction(tx, hash, calldata, type) {
     await repo.saveTransaction(record)
 }
 
+async function updateTransactionState(hash) {
+    client.node().poll(hash).then(_ => {
+        client.node().getTxInfo(hash).then(info => {
+            repo.updateTransactionState(hash, info.returnType)
+        }).catch(console.log)
+    }).catch(console.log)
+}
+
 module.exports = {
     postTx: async function(call, callback) {
         let tx = call.request.data
         let type = call.request.txType
         let txUnpacked = TxBuilder.unpackTx(tx).tx.encodedTx.tx
-        console.log("txUnpacked", txUnpacked)
-        console.log("grpc type", type)
         try {
             let callingContractSource = await contracts.getContractSourceFromAddress(txUnpacked.contractId)
             let expectedFunctionName = enums.functionNameFromGrpcType(type)
             let txType = enums.fromGrpcType(type)
-            console.log('expected function name', expectedFunctionName)
-            let callData = await compiler.decodeCalldata(callingContractSource, expectedFunctionName, txUnpacked.callData) 
-            console.log('calldata', callData)
+            let callData = await compiler.decodeCallData(callingContractSource, expectedFunctionName, txUnpacked.callData) 
             await checkTxCaller(txUnpacked)
             await checkTxType(expectedFunctionName, callData.function)
             let result = await client.instance().sendTransaction(tx, { waitMined: false })
             await persistTransaction(txUnpacked, result.hash, callData, txType)
+            updateTransactionState(result.hash)
             callback(null, { txHash: result.hash })
         } catch(err) {
-            console.log("err", err)
             callback(err, null)
         }
-    },
-    postVaultTx: function(call, callback) {
-        console.log(call.request)
     }
 }

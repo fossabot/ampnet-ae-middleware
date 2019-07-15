@@ -3,7 +3,7 @@ let txType = {
     ORG_CREATE: "ORG_CREATE",
     DEPOSIT: "DEPOSIT",
     APPROVE: "APPROVE",
-    PENDGING_ORG_WITHDRAW: "PENDGING_ORG_WITHDRAW",
+    PENDING_ORG_WITHDRAW: "PENDGING_ORG_WITHDRAW",
     PENDING_PROJ_WITHDRAW: "PENDING_PROJ_WITHDRAW",
     WITHDRAW: "WITHDRAW",
     INVEST: "INVEST",
@@ -26,8 +26,29 @@ let txState = {
 let txTypeValues = Object.values(txType)
 let txStateValues = Object.values(txState)
 
-function fromGrpcType(grpcTxType) {
-    switch (grpcTxType) {
+function toGrpcType(type) {
+    switch (type) {
+        case txType.WALLET_CREATE: return 0
+        case txType.ORG_CREATE: return 1
+        case txType.DEPOSIT: return 2
+        case txType.APPROVE: return 3
+        case txType.PENDING_ORG_WITHDRAW: return 4
+        case txType.PENDING_PROJ_WITHDRAW: return 5
+        case txType.WITHDRAW: return 6
+        case txType.INVEST: return 7
+        case txType.TRANSFER: return 8
+        case txType.ORG_ADD_MEMBER: return 9
+        case txType.ORG_ADD_PROJECT: return 10
+        case txType.ORG_ACTIVATE: return 11
+        case txType.START_REVENUE_PAYOUT: return 12
+        case txType.REVENUE_PAYOUT: return 13
+        case txType.SHARE_PAYOUT: return 14
+        case txType.WITHDRAW_INVESTMENT: return 15
+    }
+} 
+
+function fromGrpcType(type) {
+    switch (type) {
         case 0:  return txType.WALLET_CREATE
         case 1:  return txType.ORG_CREATE
         case 2:  return txType.DEPOSIT
@@ -74,5 +95,6 @@ module.exports = {
     txTypeValues,
     txStateValues,
     fromGrpcType,
+    toGrpcType,
     functionNameFromGrpcType
 }

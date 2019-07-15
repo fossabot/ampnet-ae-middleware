@@ -4,7 +4,7 @@ let path = require('path')
 let contracts = require('../../ae/contracts')
 let clients = require('./clients')
 
-const deploy = async () => {
+let deploy = async () => {
 
     // Get Coop contract instance
     

@@ -1,14 +1,16 @@
-let { Universal: Ae } = require('@aeternity/aepp-sdk')
+let { Universal: Ae, ChainNode: ChainNode } = require('@aeternity/aepp-sdk')
+
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
-let ae
+let aeInstance
+let nodeInstance
 
 async function init() {
-    if (typeof ae !== 'undefined') {
+    if (typeof aeInstance !== 'undefined') {
         throw new Error('Attempt to initialize Ae client which is already active.')
     }
 
-    ae = await Ae({
+    aeInstance = await Ae({
         url: config.node.host,
         internalUrl: config.node.internalHost,
         keypair: config.node.keypair,
@@ -16,16 +18,28 @@ async function init() {
         networkId: 'ae_devnet',
         compilerUrl: config.compiler.host
     })
+
+    nodeInstance = await ChainNode({
+        url: config.node.host
+    })
 }
 
 function instance() {
-    if (typeof ae === 'undefined') {
+    if (typeof aeInstance === 'undefined') {
         throw new Error('Attempt to get Aeternity client instance without calling init() first.')
     }
-    return ae
+    return aeInstance
+}
+
+function node() {
+    if (typeof nodeInstance === 'undefined') {
+        throw new Error('Attempt to get Aeternity Node client instance without calling init() first.')
+    }
+    return nodeInstance
 }
 
 module.exports = {
-    init: init,
-    instance: instance
+    init,
+    node,
+    instance
 }

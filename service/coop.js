@@ -1,11 +1,10 @@
-const client = require('../ae/client')
-const compiler = require('../ae/compiler')
-const contracts = require('../ae/contracts')
-const { AEProtocol } = require('airgap-coin-lib')
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let client = require('../ae/client')
+let compiler = require('../ae/compiler')
+let contracts = require('../ae/contracts')
 
-module.exports = {
-    addWallet: async function(call, callback) {
+async function addWallet(call, callback) {
+    console.log(`Received request to generate addWallet transaction. Caller: ${call.request.from} Wallet: ${call.request.wallet}`)
+    try {
         let callData = await compiler.coop.encodeAddWallet(call.request.wallet)
         let coopAddress = contracts.getCoopAddress()    
         let tx = await client.instance().contractCallTx({
@@ -15,9 +14,13 @@ module.exports = {
             amount : 0,
             gas : 10000,
             callData : callData
-        }).catch(function(error) {
-            console.log(error)
         })
+        console.log(`Successfully generated addWallet transaction: ${tx}`)
         callback(null, { tx: tx })
+    } catch (error) {
+        console.log(`Error generating addWallet transaction: ${error}`)
+        callback(err, null)
     }
 }
+
+module.exports = { addWallet }

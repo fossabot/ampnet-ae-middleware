@@ -1,7 +1,7 @@
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
-let repository = require('../persistence/repository')
 let fs = require('fs')
 let path = require('path')
+
+let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
 let coopSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'Coop.aes')).toString()
 let eurSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'EUR.aes')).toString()
@@ -36,16 +36,12 @@ function getEurAddress() {
 }
 
 async function getContractSourceFromAddress(address) {
-    console.log("getContractSourceFromAddress")
-    console.log("address", address)
-    console.log("getCoopAddress", getCoopAddress())
-    console.log("getEurAddress", getEurAddress())
     if (address == getCoopAddress()) {
         return coopSource
     } else if (address == getEurAddress()) {
         return eurSource
     } else {
-        
+        // TODO!
     }
 }
 
