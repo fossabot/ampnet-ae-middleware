@@ -1,7 +1,7 @@
 {
   "name": "node-grpc-middleware",
   "dependencies": {
-    "@aeternity/aepp-sdk": "^4.1.0",
+    "@aeternity/aepp-sdk": "^4.2.0",
     "@grpc/proto-loader": "^0.4.0",
     "airgap-coin-lib": "^0.4.4",
     "axios": "^0.19.0",

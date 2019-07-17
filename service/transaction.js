@@ -5,7 +5,7 @@ const repo = require('../persistence/repository')
 const enums = require('../enums/enums')
 const contracts = require('../ae/contracts')
 const config = require('../env.json')[process.env.NODE_ENV || 'development']
-const compiler = require('../ae/compiler')
+const codec = require('../ae/codec')
 
 const TX_STATE = enums.txState
 const TX_TYPE = enums.txType
@@ -81,8 +81,8 @@ async function persistTransaction(tx, hash, calldata, type) {
 }
 
 async function updateTransactionState(hash) {
-    client.node().poll(hash).then(_ => {
-        client.node().getTxInfo(hash).then(info => {
+    client.instance().poll(hash).then(_ => {
+        client.instance().getTxInfo(hash).then(info => {
             repo.updateTransactionState(hash, info.returnType)
         }).catch(console.log)
     }).catch(console.log)
@@ -97,7 +97,7 @@ module.exports = {
             let callingContractSource = await contracts.getContractSourceFromAddress(txUnpacked.contractId)
             let expectedFunctionName = enums.functionNameFromGrpcType(type)
             let txType = enums.fromGrpcType(type)
-            let callData = await compiler.decodeCallData(callingContractSource, expectedFunctionName, txUnpacked.callData) 
+            let callData = await codec.decodeData(callingContractSource, expectedFunctionName, txUnpacked.callData) 
             await checkTxCaller(txUnpacked)
             await checkTxType(expectedFunctionName, callData.function)
             let result = await client.instance().sendTransaction(tx, { waitMined: false })

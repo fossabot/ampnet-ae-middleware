@@ -28,6 +28,20 @@ module.exports = {
             })
         })
     },
+    isWalletActive: async function(walletTxHash) {
+        return new Promise(resolve => {
+            client.isWalletActive({
+                walletTxHash: walletTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    console.log("err", err)
+                    throw new Error(err)
+                } else {
+                    resolve(result)
+                }
+            })
+        })
+    },
     postTransaction: async function(data, txType) {
         return new Promise(resolve => {
             client.postTransaction({

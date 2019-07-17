@@ -22,8 +22,6 @@ let server
 
 module.exports = {
     start: async function() {
-        console.log("proto definition", protoDefinition)
-        console.log("package definition", packageDefinition)        
         // Initiallize Aeternity client
         await client.init()
 
@@ -35,7 +33,7 @@ module.exports = {
             generateAddWalletTx: coopSvc.addWallet,
             // generateAddOrganizationTx: generateAddOrganizationTx,
             // getOrganizations: getOrganizations,
-            // isWalletActive: isWalletActive,
+            isWalletActive: coopSvc.walletActive,
             // organizationExists: organizationExists,
             // generateMintTx: generateMintTx,
             // generateBurnFromTx: generateBurnFromTx,
