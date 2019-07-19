@@ -17,7 +17,7 @@ enum TransactionType {
     INVEST = 7;
     TRANSFER = 8;
     ORG_ADD_MEMBER = 9;
-    ORG_ADD_PROJECT = 10;
+    PROJ_CREATE = 10;
     ORG_ACTIVATE = 11;
     START_REVENUE_PAYOUT = 12;
     REVENUE_PAYOUT = 13;
@@ -28,11 +28,11 @@ enum TransactionType {
 //////// Cooperative contract messages ///////
 
 message GenerateAddWalletTxRequest {
-    string from = 1;
+    string fromTxHash = 1;
     string wallet = 2;
 }
 
-message GenerateAddOrganizationTxRequest {
+message GenerateCreateOrganizationTxRequest {
     string fromTxHash = 1;
 }
 
@@ -270,7 +270,7 @@ service BlockchainService {
     // Cooperative
 
     rpc generateAddWalletTx(GenerateAddWalletTxRequest) returns (RawTxResponse);
-    rpc generateAddOrganizationTx(GenerateAddOrganizationTxRequest) returns (RawTxResponse);
+    rpc generateCreateOrganizationTx(GenerateCreateOrganizationTxRequest) returns (RawTxResponse);
     rpc getOrganizations(Empty) returns (GetOrganizationsResponse);
     rpc isWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
     rpc organizationExists(OrganizationExistsRequest) returns (OrganizationExistsResponse);

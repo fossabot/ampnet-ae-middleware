@@ -9,9 +9,13 @@ let config = require('../env.json')[process.env.NODE_ENV || 'development']
 // services
 let txSvc = require('../service/transaction')
 let coopSvc = require('../service/coop')
+let orgSvc = require('../service/org')
 
 // client
 let client = require('../ae/client')
+
+// contracts
+let contracts = require('../ae/contracts')
 
 // grpc service definition
 let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain-service.proto'))
@@ -24,6 +28,7 @@ module.exports = {
     start: async function() {
         // Initiallize Aeternity client
         await client.init()
+        await contracts.compile()
 
         // initialize Grpc server
         server = new grpc.Server();
@@ -31,7 +36,7 @@ module.exports = {
         // gRPC services
         server.addService(packageDefinition.BlockchainService.service, {
             generateAddWalletTx: coopSvc.addWallet,
-            // generateAddOrganizationTx: generateAddOrganizationTx,
+            generateCreateOrganizationTx: orgSvc.createOrganization,
             // getOrganizations: getOrganizations,
             isWalletActive: coopSvc.walletActive,
             // organizationExists: organizationExists,
@@ -60,7 +65,7 @@ module.exports = {
             // getProjectCurrentTotalInvestment: getProjectCurrentTotalInvestment,
             // getProjectTotalInvestmentForUser: getProjectTotalInvestmentForUser,
             // isProjectCompletelyFunded: isProjectCompletelyFunded,
-            postTransaction: txSvc.postTx
+            postTransaction: txSvc.postTransaction
         });
 
         server.bind(config.grpc.url, grpc.ServerCredentials.createInsecure());

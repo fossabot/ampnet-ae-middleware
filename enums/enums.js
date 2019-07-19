@@ -9,7 +9,7 @@ let txType = {
     INVEST: "INVEST",
     TRANSFER: "TRANSFER",
     ORG_ADD_MEMBER: "ORG_ADD_MEMBER",
-    ORG_ADD_PROJECT: "ORG_ADD_PROJECT",
+    PROJ_CREATE: "PROJ_CREATE",
     ORG_ACTIVATE: "ORG_ACTIVATE",
     START_REVENUE_PAYOUT: "START_REVENUE_PAYOUT",
     REVENUE_PAYOUT: "REVENUE_PAYOUT",
@@ -28,7 +28,7 @@ let grpcTxType = {
     INVEST: 7,
     TRANSFER: 8,
     ORG_ADD_MEMBER: 9,
-    ORG_ADD_PROJECT: 10,
+    PROJ_CREATE: 10,
     ORG_ACTIVATE: 11,
     START_REVENUE_PAYOUT: 12,
     REVENUE_PAYOUT: 13,
@@ -64,7 +64,7 @@ function fromGrpcType(type) {
         case grpcTxType.INVEST:  return txType.INVEST
         case grpcTxType.TRANSFER:  return txType.TRANSFER
         case grpcTxType.ORG_ADD_MEMBER:  return txType.ORG_ADD_MEMBER
-        case grpcTxType.ORG_ADD_PROJECT: return txType.ORG_ADD_PROJECT
+        case grpcTxType.PROJ_CREATE: return txType.PROJ_CREATE
         case grpcTxType.ORG_ACTIVATE: return txType.ORG_ACTIVATE
         case grpcTxType.START_REVENUE_PAYOUT: return txType.START_REVENUE_PAYOUT
         case grpcTxType.REVENUE_PAYOUT: return txType.REVENUE_PAYOUT
@@ -76,7 +76,7 @@ function fromGrpcType(type) {
 function functionNameFromGrpcType(grpcTxType) {
     switch (grpcTxType) {
         case 0:  return "add_wallet"
-        case 1:  return "add_wallet" // TODO: rethink about merging WALLET_CREATE and ORG_CREATE in one tx type (it is the same fn call after all)
+        case 1:  return "init"
         case 2:  return "mint"
         case 3:  return "approve"
         case 4:  return "unimplemented" // TODO
@@ -85,7 +85,7 @@ function functionNameFromGrpcType(grpcTxType) {
         case 7:  return "invest"
         case 8:  return "transfer"
         case 9:  return "add_member"
-        case 10: return "unimplemented" // TODO
+        case 10: return "init"
         case 11: return "unimplemented" // TODO: probably not needed since actiavtion is actually add_wallet action
         case 12: return "start_revenue_shares_payout"
         case 13: return "payout_revenue_shares"

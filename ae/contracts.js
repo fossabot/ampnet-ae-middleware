@@ -1,5 +1,6 @@
 let fs = require('fs')
 let path = require('path')
+let client = require('./client')
 
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
@@ -8,8 +9,20 @@ let eurSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'EUR.aes
 let orgSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'Organization.aes')).toString()
 let projSource = fs.readFileSync(path.join(__dirname, '..', 'contracts', 'Project.aes')).toString()
 
+let coopCompiled
+let eurCompiled
+let orgCompiled
+let projCompiled
+
 let coopAddress
 let eurAddress
+
+async function compile() {
+    coopCompiled = await client.instance().contractCompile(coopSource)
+    eurCompiled = await client.instance().contractCompile(eurSource)
+    orgCompiled = await client.instance().contractCompile(orgSource)
+    projCompiled = await client.instance().contractCompile(projSource)
+}
 
 function setCoopAddress(address) {
     coopAddress = address
@@ -45,6 +58,11 @@ async function getContractSourceFromAddress(address) {
     }
 }
 
+function getCoopCompiled() { return coopCompiled }
+function getEurCompiled() { return eurCompiled }
+function getOrgCompiled() { return orgCompiled }
+function getProjCompiled() { return projCompiled }
+
 module.exports = {
     setCoopAddress,
     setEurAddress,
@@ -54,5 +72,10 @@ module.exports = {
     eurSource,
     orgSource,
     projSource,
-    getContractSourceFromAddress
+    getCoopCompiled,
+    getEurCompiled,
+    getOrgCompiled,
+    getProjCompiled,
+    getContractSourceFromAddress,
+    compile
 }

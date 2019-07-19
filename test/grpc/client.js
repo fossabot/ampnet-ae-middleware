@@ -14,16 +14,29 @@ module.exports = {
         client = await new packageDefinition.BlockchainService(config.grpc.url, grpc.credentials.createInsecure());
         return client
     },
-    generateAddWalletTx: async function(from, wallet) {
+    generateAddWalletTx: async function(fromTxHash, wallet) {
         return new Promise(resolve => {
             client.generateAddWalletTx({
-                from: from,
+                fromTxHash: fromTxHash,
                 wallet: wallet
             }, (err, result) => {
                 if (err != null) {
                     throw new Error(err)
                 } else {
-                    resolve(result)
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
+    generateCreateOrganizationTx: async function(fromTxHash) {
+        return new Promise(resolve => {
+            client.generateCreateOrganizationTx({
+                fromTxHash: fromTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    throw new Error(err)
+                } else {
+                    resolve(result.tx)
                 }
             })
         })
@@ -37,7 +50,7 @@ module.exports = {
                     console.log("err", err)
                     throw new Error(err)
                 } else {
-                    resolve(result)
+                    resolve(result.active)
                 }
             })
         })
@@ -51,7 +64,7 @@ module.exports = {
                 if (err != null) {
                     throw new Error(err)
                 } else {
-                    resolve(result)
+                    resolve(result.txHash)
                 }
             })
         })

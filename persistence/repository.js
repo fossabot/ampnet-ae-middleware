@@ -1,7 +1,6 @@
 let environment = process.env.ENVIRONMENT || 'development';
 let config = require('../knexfile.js')[environment];
 let knex = require('knex')(config)
-let client = require('../ae/client')
 
 let { txState: TxState, txType: TxType } = require('../enums/enums')
 
@@ -15,15 +14,17 @@ async function getWalletOrThrow(txHash) {
             switch (record.type) {
                 case TxType.WALLET_CREATE:
                 case TxType.ORG_CREATE:
-                case TxType.ORG_ADD_PROJECT: // TODO - project creating logic now different, apply changes
+                case TxType.PROJ_CREATE: // TODO - project creating logic now different, apply changes
                     switch (record.state) {
                         case TxState.MINED:
                             resolve(record)
+                            break
                         case TxState.PENDING:
                             throw new Error(`Wallet creation transaction with txHash ${txHash} not yet mined!`)
                         case TxState.FAILED:
                             throw new Error(`Wallet creation transaction with txHash ${txHash} failed! Create wallet again.`)
                     }
+                    break
                 default:
                     throw new Error(`Given txHash does not represent wallet creation transaction. Aborting.`)
             }
@@ -32,12 +33,14 @@ async function getWalletOrThrow(txHash) {
 }
 
 async function getRecord(txHash) {
-    knex('transaction')
+    return new Promise(resolve => {
+        knex('transaction')
         .where({ hash: txHash })
         .then(rows => {
             if (rows.length == 0) { throw new Error(`No record found for given txHash: ${txHash}`)}
-            return rows[0]
+            resolve(rows[0])
         })
+    })
 }
 
 async function checkWalletOrThrow(wallet) {
@@ -48,7 +51,6 @@ async function checkWalletOrThrow(wallet) {
             if (rows.length > 1) throw new Error(`Incosistent data. Multiple tx records found with wallet ${wallet}`)
             console.log(rows[0])
         })
-
 }
 
 async function findByWallet(wallet) {

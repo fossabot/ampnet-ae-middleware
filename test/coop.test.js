@@ -1,16 +1,18 @@
+const chai = require('chai');
+const assert = chai.assert;
+
 let grpcServer = require('../grpc/server')
 let grpcClient = require('./grpc/client')
 let deployer = require('./ae/deployer')
 let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
 
-let client = require('../ae/client')
-let contracts = require('../ae/contracts')
-const config = require('../env.json')[process.env.NODE_ENV || 'development']
-
 let repo = require('../persistence/repository')
-let util = require('./ae/util')
+let util = require('./util/util')
 let { grpcTxType: GrpcTxType } = require('../enums/enums')
+
+const { TxBuilder: TxBuilder } = require('@aeternity/aepp-sdk')
+
 
 describe('Main tests', function() {
 
@@ -24,21 +26,17 @@ describe('Main tests', function() {
         await deployer.deploy()
     })
 
-    it('Happy path', async () => {
-        let contractInstance = await client.instance().getContractInstance(contracts.coopSource, {
-            contractAddress: config.contracts.coop.address
-        })
-        let walletActive = await contractInstance.call("is_wallet_active", [ config.contracts.coop.owner ])
-        console.log("wallet active", walletActive)
-        // let isWalletActive = await contractInstance.is_wallet_active([config.contracts.coop.owner])
-        // console.log("isWalletActive", isWalletActive)
+    it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.coop.publicKey, accounts.bob.publicKey)
+        let addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned, GrpcTxType.WALLET_CREATE)
+        await util.waitMined(addBobWalletTxHash)
 
-        // let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.coop.publicKey, accounts.bob.publicKey)
-        // let addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx.tx)
-        // let addBobWalletTxPost = await grpcClient.postTransaction(addBobWalletTxSigned, GrpcTxType.WALLET_CREATE)
-        // await util.waitMined(addBobWalletTxPost)
-        // let bobWalletActive = await grpcClient.isWalletActive(addBobWalletTxPost.txHash)
-        // console.log(bobWalletActive)
+        let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
+        let unpackedAddBobWalletTx = TxBuilder.unpackTx(addBobWalletTx)
+        console.log("unpackedContractCall", unpackedAddBobWalletTx)
+        let unpackedCreateOrgTx = TxBuilder.unpackTx(createOrgTx)
+        console.log("unpackedContractCreate", unpackedCreateOrgTx)
     })
 
     // it('Should fail if tx type is wrong', async () => {

@@ -10,9 +10,52 @@ const codec = require('../ae/codec')
 const TX_STATE = enums.txState
 const TX_TYPE = enums.txType
 
-async function checkTxCaller(tx) {
-    let callerId = tx.callerId
+async function postTransaction(call, callback) {
+    console.log(`\nReceived request to post ${enums.fromGrpcType(call.request.txType)} transaction: ${call.request.data}`)
+    try {
+        let tx = call.request.data
+        let type = call.request.txType
+        
+        await performSecurityChecks(tx, type)
 
+
+        let txUnpacked = TxBuilder.unpackTx(tx).tx.encodedTx.tx
+        let callingContractSource = await contracts.getContractSourceFromAddress(txUnpacked.contractId)
+        let expectedFunctionName = enums.functionNameFromGrpcType(type)
+        let txType = enums.fromGrpcType(type)
+        let callData = await codec.decodeData(callingContractSource, expectedFunctionName, txUnpacked.callData) 
+        await checkTxCaller(txUnpacked)
+        await checkTxType(expectedFunctionName, callData.function)
+        let result = await client.instance().sendTransaction(tx, { waitMined: false })
+        await persistTransaction(txUnpacked, result.hash, callData, txType)
+        updateTransactionState(result.hash)
+        console.log(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
+        callback(null, { txHash: result.hash })
+    } catch(err) {
+        console.log(`Error while posting transaction: ${err}`)
+        callback(err, null)
+    }
+}
+
+async function performSecurityChecks(tx, grpcType) {
+    let unpackedTx = TxBuilder.unpackTx(tx)
+    let type = enums.fromGrpcType(grpcType)
+
+    switch (unpackedTx.txType) {
+        case 'contractCallTx':
+            checkTxCaller(unpackedTx.callerId)
+            
+            break
+        case 'contractCreateTx':
+            checkTxCaller(unpackedTx.ownerId)
+            checkContractData(unpackedTx, type)
+            break
+        default:
+            throw new Error(`Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
+    }
+}
+
+async function checkTxCaller(callerId) {
     let coopAuthorityId = config.contracts.coop.owner
     let issuingAuthorityId = config.contracts.eur.owner
     
@@ -21,8 +64,47 @@ async function checkTxCaller(tx) {
         return
     }
 
-    // if caller not found in repo exception is thrown
+    // if caller not found in repo or caller's wallet still not mined exception is thrown
     return repo.findByWallet(callerId)
+}
+
+async function checkContractData(unpackedTx, type) {
+    switch(type) {
+        case TX_TYPE.ORG_CREATE:
+            if (unpackedTx.code != contracts.getOrgCompiled().bytecode) {
+                throw new Error(`Error posting Organization create transaction. Unexpected bytecode provided. Aborting.`)
+            }
+            let decodedCallData = codec.decodeData(contracts.orgSource, "init", unpackedTx.callData)
+            if (decodedCallData.arguments[0].value != contracts.getCoopAddress()) {
+                throw new Error(`Error posting Organization create transaction. Attempt to create Organization with wrong Cooperative contract address as argument!`)
+            }
+            break
+        case TX_TYPE.PROJ_CREATE:
+            if (unpackedTx.code != contracts.getProjCompiled().bytecode) {
+                throw new Error(`Error posting Project create transaction. Unexpected bytecode provided. Aborting.`)
+            }
+            let decodedCallData = codec.decodeData(contracts.orgSource, "init", unpackedTx.callData)
+            let organizationAddress = decodedCallData.arguments[0].value
+            let isOrganizationActive = await client.contractCallStatic(
+                contracts.coopSource, 
+                contracts.getCoopAddress(), 
+                enums.functions.coop.isWalletActive,
+                [ organizationAddress ]
+            )
+            let isOrganizationActiveDecoded = await isOrganizationActive.decode()
+            if (!isOrganizationActiveDecoded) {
+                throw new Error(`Error posting Project create transaction. Attempt to create Project with wrong Organization contract address as argument!`)
+            }
+            break
+        default:
+            throw new Error(`Error posting transaction. Expected contract create transaction but got transaction of type ${type}. Aborting.`)
+    }
+    if (unpackedTx.amount != 0) {
+        throw new Error(`Error posting Contract create transaction. Amount field has to be set to 0 but ${unpackedTx.acmount} provided!`)
+    }
+    if (unpackedTx.deposit != 0) {
+        throw new Error(`Error posting Contract create transaction. Deposit field has to be set to 0 but ${unpackedTx.deposit} provided!`)
+    }
 }
 
 async function checkTxType(expectedFunctionName, actualFunctionName) {
@@ -64,7 +146,7 @@ async function persistTransaction(tx, hash, calldata, type) {
             break
         case TX_TYPE.ORG_ADD_MEMBER:
             break
-        case TX_TYPE.ORG_ADD_PROJECT:
+        case TX_TYPE.PROJ_CREATE:
             break
         case TX_TYPE.ORG_ACTIVATE:
             break
@@ -88,24 +170,6 @@ async function updateTransactionState(hash) {
     }).catch(console.log)
 }
 
-module.exports = {
-    postTx: async function(call, callback) {
-        let tx = call.request.data
-        let type = call.request.txType
-        let txUnpacked = TxBuilder.unpackTx(tx).tx.encodedTx.tx
-        try {
-            let callingContractSource = await contracts.getContractSourceFromAddress(txUnpacked.contractId)
-            let expectedFunctionName = enums.functionNameFromGrpcType(type)
-            let txType = enums.fromGrpcType(type)
-            let callData = await codec.decodeData(callingContractSource, expectedFunctionName, txUnpacked.callData) 
-            await checkTxCaller(txUnpacked)
-            await checkTxType(expectedFunctionName, callData.function)
-            let result = await client.instance().sendTransaction(tx, { waitMined: false })
-            await persistTransaction(txUnpacked, result.hash, callData, txType)
-            updateTransactionState(result.hash)
-            callback(null, { txHash: result.hash })
-        } catch(err) {
-            callback(err, null)
-        }
-    }
-}
+
+
+module.exports = { postTransaction }
