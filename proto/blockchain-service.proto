@@ -6,25 +6,6 @@ All amount (fiat) values in request and response messages are x100 format intege
 for example amount: 1550 is actually 15.50 EUR.
 ******************************************/
 
-enum TransactionType {
-    WALLET_CREATE = 0;
-    ORG_CREATE = 1;
-    DEPOSIT = 2;
-    APPROVE = 3;
-    PENDING_ORG_WITHDRAW = 4;
-    PENDING_PROJ_WITHDRAW = 5;
-    WITHDRAW = 6;
-    INVEST = 7;
-    TRANSFER = 8;
-    ORG_ADD_MEMBER = 9;
-    PROJ_CREATE = 10;
-    ORG_ACTIVATE = 11;
-    START_REVENUE_PAYOUT = 12;
-    REVENUE_PAYOUT = 13;
-    SHARE_PAYOUT = 14;
-    WITHDRAW_INVESTMENT = 15;
-}
-
 //////// Cooperative contract messages ///////
 
 message GenerateAddWalletTxRequest {
@@ -239,12 +220,10 @@ message ProjectCompletelyFundedResponse {
 
 message PostTxRequest {
     string data = 1;
-    TransactionType txType = 2;
 }
 
 message PostVaultTxRequest {
     string data = 1;
-    TransactionType txType = 2;
 }
 
 message PostTxResponse {

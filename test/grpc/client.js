@@ -55,11 +55,10 @@ module.exports = {
             })
         })
     },
-    postTransaction: async function(data, txType) {
+    postTransaction: async function(data) {
         return new Promise(resolve => {
             client.postTransaction({
-                data: data,
-                txType: txType
+                data: data
             }, (err, result) => {
                 if (err != null) {
                     throw new Error(err)

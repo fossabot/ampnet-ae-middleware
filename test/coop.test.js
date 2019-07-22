@@ -24,19 +24,20 @@ describe('Main tests', function() {
 
     beforeEach(async() => {
         await deployer.deploy()
+        await util.wipeDb()
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.coop.publicKey, accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
-        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned, GrpcTxType.WALLET_CREATE)
+        let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
-        let unpackedAddBobWalletTx = TxBuilder.unpackTx(addBobWalletTx)
-        console.log("unpackedContractCall", unpackedAddBobWalletTx)
-        let unpackedCreateOrgTx = TxBuilder.unpackTx(createOrgTx)
-        console.log("unpackedContractCreate", unpackedCreateOrgTx)
+        let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
+        let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
+        await util.waitMined(createOrgTxHash)
+
     })
 
     // it('Should fail if tx type is wrong', async () => {

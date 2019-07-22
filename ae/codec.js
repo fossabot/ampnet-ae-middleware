@@ -10,12 +10,16 @@ async function encodeAddWallet(wallet) {
 async function encodeCreateOrganization() {
     let encoded = await contracts.getOrgCompiled().encodeCall("init", [ contracts.getCoopAddress() ])
     //let encoded = await client.instance().contractEncodeCall(contracts.getOrgCompiled().bytecode, "init", [ contracts.getCoopAddress() ])
-    console.log(encoded)
     return encoded
 }
 
-async function decodeData(source, fn, value) {
+async function decodeDataBySource(source, fn, value) {
     let decoded = await client.instance().contractDecodeCallDataBySourceAPI(source, fn, value)
+    return decoded
+}
+
+async function decodeDataByBytecode(bytecode, data) {
+    let decoded = await client.instance().contractDecodeCallDataByCodeAPI(bytecode, data)
     return decoded
 }
 
@@ -26,5 +30,6 @@ module.exports = {
     org: {
         encodeCreateOrganization
     },
-    decodeData
+    decodeDataBySource,
+    decodeDataByBytecode
 }

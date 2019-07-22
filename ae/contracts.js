@@ -1,6 +1,8 @@
 let fs = require('fs')
 let path = require('path')
 let client = require('./client')
+let repo = require('../persistence/repository')
+let txType = require('../enums/enums').txType
 
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
@@ -48,13 +50,32 @@ function getEurAddress() {
     }
 }
 
-async function getContractSourceFromAddress(address) {
+async function getContractFromAddress(address) {
     if (address == getCoopAddress()) {
-        return coopSource
+        return {
+            source: coopSource,
+            bytecode: coopCompiled.bytecode
+        }
     } else if (address == getEurAddress()) {
-        return eurSource
+        return {
+            source: eurSource,
+            bytecode: eurCompiled.bytecode
+        }
     } else {
-        // TODO!
+        let record = await repo.findByWallet(address)
+        if (record.type == txType.ORG_CREATE) {
+            return {
+                source: orgSource,
+                bytecode: orgCompiled.bytecode
+            }
+        } else if (record.type == txType.PROJ_CREATE) {
+            return {
+                source: projSource,
+                bytecode: projCompiled.bytecode
+            }
+        } else {
+            throw new Error("Could not convert deployed contract address to source file.")
+        }
     }
 }
 
@@ -76,6 +97,6 @@ module.exports = {
     getEurCompiled,
     getOrgCompiled,
     getProjCompiled,
-    getContractSourceFromAddress,
+    getContractFromAddress,
     compile
 }

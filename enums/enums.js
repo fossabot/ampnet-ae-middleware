@@ -52,6 +52,21 @@ let functions = {
 let txTypeValues = Object.values(txType)
 let txStateValues = Object.values(txState)
 
+function fromFunctionName(name) {
+    switch(name) {
+        case "add_wallet": return txType.WALLET_CREATE
+        case "mint": return txType.DEPOSIT
+        case "approve": return txType.APPROVE
+        case "withdraw": return txType.PENDING_PROJ_WITHDRAW
+        case "burn": return txType.WITHDRAW
+        case "invest": return txType.INVEST
+        case "transfer": return txType.TRANSFER
+        case "add_member": return txType.ORG_ADD_MEMBER
+        case "start_revenue_shares_payout": return txType.START_REVENUE_PAYOUT
+        case "payout_revenue_shares": return txType.REVENUE_PAYOUT
+    }  
+}
+
 function fromGrpcType(type) {
     switch (type) {
         case grpcTxType.WALLET_CREATE:  return txType.WALLET_CREATE
@@ -102,5 +117,6 @@ module.exports = {
     txStateValues,
     fromGrpcType,
     functionNameFromGrpcType,
-    functions
+    functions,
+    fromFunctionName
 }
