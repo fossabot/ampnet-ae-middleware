@@ -162,6 +162,19 @@ async function persistTransaction(tx, hash, txInfo) {
             }
             break
         case TxType.DEPOSIT:
+            let toAddress = txInfo.callData.arguments[0].value
+            let amount = txInfo.callData.arguments[1].value
+            let toTxHash = (await repo.findByWallet(toAddress)).hash
+            record = {
+                hash: hash,
+                from_wallet: tx.callerId,
+                to_wallet: toTxHash,
+                input: tx.callData,
+                state: TxState.PENDING,
+                type: TxType.DEPOSIT,
+                created_at: new Date(),
+                amount: (util.tokenToEur(amount))
+            }
             break
         case TxType.APPROVE:
             break
@@ -205,9 +218,9 @@ async function isWalletActive(wallet) {
 }
 
 async function updateTransactionState(hash) {
-    client.instance().poll(hash).then(_ => {
+    client.instance().poll(hash).then(pollInfo => {
         client.instance().getTxInfo(hash).then(info => {
-            repo.updateTransactionState(hash, info)
+            repo.updateTransactionState(hash, info, pollInfo.tx.type)
         }).catch(console.log)
     }).catch(console.log)
 }

@@ -9,6 +9,7 @@ let config = require('../env.json')[process.env.NODE_ENV || 'development']
 // services
 let txSvc = require('../service/transaction')
 let coopSvc = require('../service/coop')
+let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
 
 // client
@@ -37,10 +38,8 @@ module.exports = {
         server.addService(packageDefinition.BlockchainService.service, {
             generateAddWalletTx: coopSvc.addWallet,
             generateCreateOrganizationTx: orgSvc.createOrganization,
-            // getOrganizations: getOrganizations,
             isWalletActive: coopSvc.walletActive,
-            // organizationExists: organizationExists,
-            // generateMintTx: generateMintTx,
+            generateMintTx: eurSvc.mint,
             // generateBurnFromTx: generateBurnFromTx,
             // generateApproveWithdrawTx: generateApproveWithdrawTx,
             // generateInvestmentTx: generateInvestmentTx,

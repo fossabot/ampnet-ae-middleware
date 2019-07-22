@@ -28,16 +28,24 @@ describe('Main tests', function() {
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
-        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.coop.publicKey, accounts.bob.publicKey)
+        let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
         let addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
+        console.log("bobHash", addBobWalletTxHash)
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
         let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
         await util.waitMined(createOrgTxHash)
 
+        let mintToBobTx = await grpcClient.generateMintTx(addBobWalletTxHash, 1000)
+        let mintToBobTxSigned = await clients.eur().signTransaction(mintToBobTx)
+        let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned)
+        await util.waitMined(mintToBobTxHash)
+
+        let records = await repo.getAll()
+        console.log(records)
     })
 
     // it('Should fail if tx type is wrong', async () => {

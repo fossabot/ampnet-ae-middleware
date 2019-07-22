@@ -9,8 +9,7 @@ for example amount: 1550 is actually 15.50 EUR.
 //////// Cooperative contract messages ///////
 
 message GenerateAddWalletTxRequest {
-    string fromTxHash = 1;
-    string wallet = 2;
+    string wallet = 1;
 }
 
 message GenerateCreateOrganizationTxRequest {
@@ -50,9 +49,8 @@ message BalanceResponse {
 
 // Called by token issuing authority, not using txHash here
 message GenerateMintTxRequest {
-    string from = 1;
-    string toTxHash = 2;
-    uint64 amount = 3;
+    string toTxHash = 1;
+    uint64 amount = 2;
 }
 
 // Called by token issuing authority, not using txHash here

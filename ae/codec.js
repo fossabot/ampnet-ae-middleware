@@ -13,6 +13,14 @@ async function encodeCreateOrganization() {
     return encoded
 }
 
+async function encodeMint(address, amount) {
+    console.log("fn name", functions.eur.mint)
+    console.log("first param", address)
+    console.log("second param", amount)
+    let encoded = await contracts.getEurCompiled().encodeCall(functions.eur.mint, [ address, amount ])
+    return encoded 
+}
+
 async function decodeDataBySource(source, fn, value) {
     let decoded = await client.instance().contractDecodeCallDataBySourceAPI(source, fn, value)
     return decoded
@@ -29,6 +37,9 @@ module.exports = {
     },
     org: {
         encodeCreateOrganization
+    },
+    eur: {
+        encodeMint
     },
     decodeDataBySource,
     decodeDataByBytecode

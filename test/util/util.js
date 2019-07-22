@@ -14,7 +14,7 @@ async function waitMined(txHash) {
         client.instance().poll(txHash).then(async _ => {
             client.instance().getTxInfo(txHash).then(async (info) => {
                 console.log(`\nTransaction ${txHash} mined! Status: ${info.returnType}`)
-                await sleep(750)
+                await sleep(1000)
                 resolve()
             })
         })

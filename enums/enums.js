@@ -46,6 +46,9 @@ let functions = {
     coop: {
         addWallet: "add_wallet",
         isWalletActive: "is_wallet_active"
+    },
+    eur: {
+        mint: "mint"
     }
 }
 

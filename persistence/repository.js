@@ -116,7 +116,7 @@ async function getUpdatedStateJson(hash, info, type) {
         return {
             state: newState,
             processed_at: new Date(),
-            address: util.enforceAkPrefix(info.contractId)
+            wallet: util.enforceAkPrefix(info.contractId)
         }
     } else {
         return {
