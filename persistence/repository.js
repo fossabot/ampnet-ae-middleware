@@ -1,6 +1,7 @@
 let environment = process.env.ENVIRONMENT || 'development';
 let config = require('../knexfile.js')[environment];
 let util = require('../ae/util')
+let client = require('../ae/client')
 let knex = require('knex')(config)
 
 let { txState: TxState, txType: TxType } = require('../enums/enums')
@@ -106,10 +107,10 @@ async function getUpdatedStateJson(hash, info, type) {
     let newState
     if (info.returnType == "ok") {
         newState = TxState.MINED
-    } else if (info.returnType == "revert") {
+    } else if (info.returnType == "revert" || info.returnType == "error") {
         newState = TxState.FAILED
     } else {
-        throw new Error(`Invalid transaction update state. Expected ok/revert state but got ${state} for transaction with hash ${hash}`)
+        throw new Error(`Invalid transaction update state. Expected ok/revert state but got ${info.returnType} for transaction with hash ${hash}`)
     }
 
     if (type == 'ContractCreateTx') {

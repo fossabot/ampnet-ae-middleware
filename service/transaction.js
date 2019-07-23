@@ -137,7 +137,7 @@ async function persistTransaction(tx, hash, txInfo) {
     let record
     switch (txInfo.type) {
         case TxType.WALLET_CREATE:
-            let address = txInfo.callData.arguments[0].value
+            address = txInfo.callData.arguments[0].value
             record = {
                 hash: hash,
                 from_wallet: tx.callerId,
@@ -150,7 +150,7 @@ async function persistTransaction(tx, hash, txInfo) {
             }
             break
         case TxType.ORG_CREATE:
-            let ownerTxHash = (await repo.findByWallet(tx.ownerId)).hash
+            ownerTxHash = (await repo.findByWallet(tx.ownerId)).hash
             record = {
                 hash: hash,
                 from_wallet: ownerTxHash,
@@ -162,9 +162,9 @@ async function persistTransaction(tx, hash, txInfo) {
             }
             break
         case TxType.DEPOSIT:
-            let toAddress = txInfo.callData.arguments[0].value
-            let amount = txInfo.callData.arguments[1].value
-            let toTxHash = (await repo.findByWallet(toAddress)).hash
+            toAddress = txInfo.callData.arguments[0].value
+            amount = util.tokenToEur(txInfo.callData.arguments[1].value)
+            toTxHash = (await repo.findByWallet(toAddress)).hash
             record = {
                 hash: hash,
                 from_wallet: tx.callerId,
@@ -173,16 +173,41 @@ async function persistTransaction(tx, hash, txInfo) {
                 state: TxState.PENDING,
                 type: TxType.DEPOSIT,
                 created_at: new Date(),
-                amount: (util.tokenToEur(amount))
+                amount: amount
             }
             break
         case TxType.APPROVE:
+            fromTxHash = (await repo.findByWallet(tx.callerId)).hash
+            amount = util.tokenToEur(txInfo.callData.arguments[1].value)
+            record = {
+                hash: hash,
+                from_wallet: fromTxHash,
+                to_wallet: tx.callerId,
+                input: tx.callData,
+                state: TxState.PENDING,
+                type: TxType.APPROVE,
+                created_at: new Date(),
+                amount: amount
+            }
             break
         case TxType.PENDGING_ORG_WITHDRAW:
             break
         case TxType.PENDING_PROJ_WITHDRAW:
             break
         case TxType.WITHDRAW:
+            withdrawFrom = txInfo.callData.arguments[0].value
+            amount = util.tokenToEur(txInfo.callData.arguments[1].value)
+            withdrawFromTxHash = (await repo.findByWallet(withdrawFrom)).hash
+            record = {
+                hash: hash,
+                from_wallet: withdrawFromTxHash,
+                to_wallet: tx.callerId,
+                input: tx.callData,
+                state: TxState.PENDING,
+                type: TxType.WITHDRAW,
+                created_at: new Date(),
+                amount: amount
+            }
             break
         case TxType.INVEST:
             break
@@ -208,7 +233,7 @@ async function persistTransaction(tx, hash, txInfo) {
 
 async function isWalletActive(wallet) {
     let address = await util.enforceAkPrefix(wallet)
-    let result = await client.contractCallStatic(
+    let result = await client.instance().contractCallStatic(
         contracts.coopSource, 
         contracts.getCoopAddress(), 
         enums.functions.coop.isWalletActive,

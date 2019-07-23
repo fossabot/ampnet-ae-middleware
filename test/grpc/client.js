@@ -54,6 +54,46 @@ module.exports = {
             })
         })
     },
+    generateApproveWithdrawTx: async function(fromTxHash, amount) {
+        return new Promise(resolve => {
+            client.generateApproveWithdrawTx({
+                fromTxHash: fromTxHash,
+                amount: amount
+            }, (err, result) => {
+                if (err != null) {
+                    throw new Error(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
+    generateBurnFromTx: async function(burnFromTxHash) {
+        return new Promise(resolve => {
+            client.generateBurnFromTx({
+                burnFromTxHash: burnFromTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    throw new Error(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
+    getBalance: async function(walletTxHash) {
+        return new Promise(resolve => {
+            client.getBalance({
+                walletTxHash: walletTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    throw new Error(err)
+                } else {
+                    resolve(result.balance)
+                }
+            })
+        })
+    },
     isWalletActive: async function(walletTxHash) {
         return new Promise(resolve => {
             client.isWalletActive({

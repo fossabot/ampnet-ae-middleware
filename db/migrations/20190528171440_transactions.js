@@ -9,7 +9,7 @@ exports.up = function(knex, Promise) {
         table.string('input').notNullable();
         table.enu('state', enums.txStateValues).notNullable();
         table.enu('type', enums.txTypeValues).notNullable();
-        table.integer('amount');
+        table.bigInteger('amount');
         table.string('wallet');
         table.timestamp('created_at', { useTz: true }).notNullable();
         table.timestamp('processed_at', { useTz: true });

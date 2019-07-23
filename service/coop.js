@@ -32,7 +32,7 @@ async function walletActive(call, callback) {
     try {
         let tx = await repo.getWalletOrThrow(call.request.walletTxHash)
         console.log(`Address represented by given hash: ${tx.wallet}\n`)
-        let result = await client.instance().contractCall(
+        let result = await client.instance().contractCallStatic(
             contracts.coopSource, 
             contracts.getCoopAddress(),
             functions.coop.isWalletActive, 

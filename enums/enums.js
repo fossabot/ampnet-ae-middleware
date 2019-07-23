@@ -48,7 +48,11 @@ let functions = {
         isWalletActive: "is_wallet_active"
     },
     eur: {
-        mint: "mint"
+        mint: "mint",
+        allowance: "allowance",
+        balanceOf: "balance_of",
+        burnFrom: "burn",
+        approve: "approve"
     }
 }
 

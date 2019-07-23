@@ -7,6 +7,8 @@ let deployer = require('./ae/deployer')
 let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
 
+let client = require('../ae/client')
+
 let repo = require('../persistence/repository')
 let util = require('./util/util')
 let { grpcTxType: GrpcTxType } = require('../enums/enums')
@@ -32,7 +34,6 @@ describe('Main tests', function() {
         let addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
-        console.log("bobHash", addBobWalletTxHash)
 
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
         let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
@@ -44,6 +45,16 @@ describe('Main tests', function() {
         let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned)
         await util.waitMined(mintToBobTxHash)
 
+        let approveBobWithdrawTx = await grpcClient.generateApproveWithdrawTx(addBobWalletTxHash, 1000)
+        let approveBobWithdrawTxSigned = await clients.bob().signTransaction(approveBobWithdrawTx)
+        let approveBobWithdrawTxHash = await grpcClient.postTransaction(approveBobWithdrawTxSigned)
+        await util.waitMined(approveBobWithdrawTxHash)
+
+        let burnFromBobTx = await grpcClient.generateBurnFromTx(addBobWalletTxHash)
+        let burnFromBobTxSigned = await clients.eur().signTransaction(burnFromBobTx)
+        let burnFromBobTxHash = await grpcClient.postTransaction(burnFromBobTxSigned)
+        await util.waitMined(burnFromBobTxHash)
+ 
         let records = await repo.getAll()
         console.log(records)
     })

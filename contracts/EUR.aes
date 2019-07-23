@@ -35,7 +35,7 @@ contract EUR =
 
   stateful entrypoint approve(spender: address, value: int) : bool = 
     only_coop_user(Call.caller)
-    only_coop_user(spender)
+    require(spender == state.owner, "Only owner can get approved to spend caller tokens.")
 
     require(value > 0, "Value is sub zero")
     // require(spender != #0, "Invalid spender address")

@@ -9,7 +9,7 @@ function eurToToken(amount) {
 }
 
 function tokenToEur(amount) {
-    return (BigInt(amount) / tokenFactor)
+    return (BigInt(amount) / tokenFactor).toString()
 }
 
 module.exports = { 

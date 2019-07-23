@@ -44,31 +44,27 @@ message BalanceRequest {
 }
 
 message BalanceResponse {
-    uint64 balance = 1;
+    string balance = 1;
 }
 
-// Called by token issuing authority, not using txHash here
 message GenerateMintTxRequest {
     string toTxHash = 1;
-    uint64 amount = 2;
+    string amount = 2;
 }
 
-// Called by token issuing authority, not using txHash here
 message GenerateBurnFromTxRequest {
-    string from = 1;
-    string burnFromTxHash = 2;
-    uint64 amount = 3;
+    string burnFromTxHash = 1;
 }
 
 message GenerateApproveWithdrawTxRequest {
     string fromTxHash = 1;
-    uint64 amount = 2;
+    string amount = 2;
 }
 
 message GenerateInvestmentTxRequest {
     string fromTxHash = 1;
     string projectTxHash = 2;
-    uint64 amount = 3;
+    string amount = 3;
 }
 
 message GenerateCancelPendingInvestmentTxRequest {
@@ -79,7 +75,7 @@ message GenerateCancelPendingInvestmentTxRequest {
 message GenerateTransferTxRequest {
     string fromTxHash = 1;
     string toTxHash = 2;
-    uint64 amount = 3;
+    string amount = 3;
 }
 
 
@@ -92,7 +88,7 @@ message ActivateOrganizationRequest {
 message GenerateWithdrawOrganizationFundsTxRequest {
     string fromTxHash = 1;
     string organizationTxHash = 2;
-    uint64 amount = 3;
+    string amount = 3;
 }
 
 message GenerateAddMemberTxRequest {
@@ -104,10 +100,10 @@ message GenerateAddMemberTxRequest {
 message GenerateAddProjectTxRequest {
     string fromTxHash = 1;
     string organizationTxHash = 2;
-    uint64 maxInvestmentPerUser = 3;
-    uint64 minInvestmentPerUser = 4;
-    uint64 investmentCap = 5;
-    uint64 endInvestmentTime = 6;
+    string maxInvestmentPerUser = 3;
+    string minInvestmentPerUser = 4;
+    string investmentCap = 5;
+    string endInvestmentTime = 6;
 }
 
 message OrganizationVerifiedRequest {
@@ -145,7 +141,7 @@ message GenerateConfirmInvestmentTxRequest {
 message GenerateStartRevenuePayoutTxRequest {
     string fromTxHash = 1;
     string projectTxHash = 2;
-    uint64 revenue = 3;
+    string revenue = 3;
 }
 
 message GeneratePayoutRevenueSharesTxRequest {
@@ -161,7 +157,7 @@ message GenerateWithdrawInvestmentTxRequest {
 message GenerateWithdrawProjectFundsTx {
     string fromTxHash = 1;
     string projectTxHash = 2;
-    uint64 amount = 3;
+    string amount = 3;
 }
 
 message ProjectMaxInvestmentPerUserRequest {
@@ -169,7 +165,7 @@ message ProjectMaxInvestmentPerUserRequest {
 }
 
 message ProjectMaxInvestmentPerUserResponse {
-    uint64 amount = 1;
+    string amount = 1;
 }
 
 message ProjectMinInvestmentPerUserRequest {
@@ -177,7 +173,7 @@ message ProjectMinInvestmentPerUserRequest {
 }
 
 message ProjectMinInvestmentPerUserResponse {
-    uint64 amount = 1;
+    string amount = 1;
 }
 
 message ProjectInvestmentCapRequest {
@@ -185,7 +181,7 @@ message ProjectInvestmentCapRequest {
 }
 
 message ProjectInvestmentCapResponse {
-    uint64 amount = 1;
+    string amount = 1;
 }
 
 message ProjectCurrentTotalInvestmentRequest {
@@ -193,7 +189,7 @@ message ProjectCurrentTotalInvestmentRequest {
 }
 
 message ProjectCurrentTotalInvestmentResponse {
-    uint64 amount = 1;
+    string amount = 1;
 }
 
 message ProjectTotalInvestmentForUserRequest {
@@ -202,7 +198,7 @@ message ProjectTotalInvestmentForUserRequest {
 }
 
 message ProjectTotalInvestmentForUserResponse {
-    uint64 amount = 1;
+    string amount = 1;
 }
 
 message ProjectCompletelyFundedRequest {

@@ -2,6 +2,8 @@ let client = require('./client')
 let contracts = require('./contracts')
 let functions = require('../enums/enums').functions
 
+let config = require('../env.json')[process.env.NODE_ENV || 'development']
+
 async function encodeAddWallet(wallet) {
     let encoded = await client.instance().contractEncodeCall(contracts.coopSource, functions.coop.addWallet, [ wallet ])
     return encoded
@@ -14,11 +16,18 @@ async function encodeCreateOrganization() {
 }
 
 async function encodeMint(address, amount) {
-    console.log("fn name", functions.eur.mint)
-    console.log("first param", address)
-    console.log("second param", amount)
     let encoded = await contracts.getEurCompiled().encodeCall(functions.eur.mint, [ address, amount ])
     return encoded 
+}
+
+async function encodeApproveWithdraw(amount) {
+    let encoded = await contracts.getEurCompiled().encodeCall(functions.eur.approve, [ config.contracts.eur.owner, amount ])
+    return encoded
+}
+
+async function encodeBurnFrom(address, amount) {
+    let encoded = await contracts.getEurCompiled().encodeCall(functions.eur.burnFrom, [ address, amount ])
+    return encoded
 }
 
 async function decodeDataBySource(source, fn, value) {
@@ -39,7 +48,9 @@ module.exports = {
         encodeCreateOrganization
     },
     eur: {
-        encodeMint
+        encodeMint,
+        encodeApproveWithdraw,
+        encodeBurnFrom
     },
     decodeDataBySource,
     decodeDataByBytecode
