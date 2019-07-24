@@ -3,8 +3,9 @@ let config = require('../knexfile.js')[environment];
 let util = require('../ae/util')
 let client = require('../ae/client')
 let knex = require('knex')(config)
+let contracts = require('../ae/contracts')
 
-let { txState: TxState, txType: TxType } = require('../enums/enums')
+let { txState: TxState, txType: TxType, walletType: WalletType } = require('../enums/enums')
 
 async function getWalletOrThrow(txHash) {
     return new Promise(resolve => {
@@ -30,6 +31,16 @@ async function getWalletOrThrow(txHash) {
                 default:
                     throw new Error(`Given txHash does not represent wallet creation transaction. Aborting.`)
             }
+        })
+    })
+}
+
+async function walletExists(wallet) {
+    return new Promise(resolve => {
+        knex('transaction')
+        .where({ wallet: wallet })
+        .then(rows => {
+            resolve(rows.length > 0)
         })
     })
 }
@@ -91,8 +102,8 @@ async function getAll() {
     })
 }
 
-async function updateTransactionState(hash, info, type) {
-    let newStateJson = await getUpdatedStateJson(hash, info, type)
+async function updateTransactionState(hash, info, txInfo) {
+    let newStateJson = await getUpdatedStateJson(hash, info, txInfo)
     return new Promise(resolve => {
         knex('transaction')
             .where({ hash: hash })
@@ -103,7 +114,7 @@ async function updateTransactionState(hash, info, type) {
     })
 }
 
-async function getUpdatedStateJson(hash, info, type) {
+async function getUpdatedStateJson(hash, info, txInfo) {
     let newState
     if (info.returnType == "ok") {
         newState = TxState.MINED
@@ -113,17 +124,38 @@ async function getUpdatedStateJson(hash, info, type) {
         throw new Error(`Invalid transaction update state. Expected ok/revert state but got ${info.returnType} for transaction with hash ${hash}`)
     }
 
-    if (type == 'ContractCreateTx') {
-        return {
-            state: newState,
-            processed_at: new Date(),
-            wallet: util.enforceAkPrefix(info.contractId)
-        }
-    } else {
-        return {
-            state: newState,
-            processed_at: new Date()
-        }
+    switch (txInfo.type) {
+        case TxType.WALLET_CREATE:
+            let wallet = txInfo.callData.arguments[0].value
+            let bytecodeResponse = await client.instance().getContractByteCode(util.enforceCtPrefix(wallet)).catch(error => { })
+            walletType = WalletType.USER
+            if (typeof bytecodeResponse !== 'undefined') {
+                switch (bytecodeResponse.bytecode) {
+                    case contracts.getOrgCompiled().bytecode:
+                        walletType = WalletType.ORGANIZATION
+                        break
+                    case contracts.getProjCompiled().bytecode:
+                        walletType = WalletType.PROJECT
+                        break
+                    default:
+                        throw new Error(`Wallet with address ${wallet} represents unknown Contract!`)
+                }
+            }
+
+            let alreadyExists = await walletExists(wallet)
+            if (!alreadyExists) {
+                return {
+                    state: newState,
+                    processed_at: new Date(),
+                    wallet: wallet,
+                    wallet_type: walletType
+                }
+            }
+        default:
+            return {
+                state: newState,
+                processed_at: new Date()
+            }
     }
 }
 
@@ -134,5 +166,6 @@ module.exports = {
     saveTransaction,
     getAll,
     updateTransactionState,
-    getRecord
+    getRecord,
+    walletExists
 }

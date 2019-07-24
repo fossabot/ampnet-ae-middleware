@@ -11,6 +11,7 @@ let txSvc = require('../service/transaction')
 let coopSvc = require('../service/coop')
 let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
+let projSvc = require('../service/project')
 
 // client
 let client = require('../ae/client')
@@ -37,14 +38,15 @@ module.exports = {
         // gRPC services
         server.addService(packageDefinition.BlockchainService.service, {
             generateAddWalletTx: coopSvc.addWallet,
-            generateCreateOrganizationTx: orgSvc.createOrganization,
             isWalletActive: coopSvc.walletActive,
             generateMintTx: eurSvc.mint,
             generateBurnFromTx: eurSvc.burnFrom,
-            generateApproveWithdrawTx: eurSvc.approve,
-            // generateInvestmentTx: generateInvestmentTx,
-            // generateCancelPendingInvestmentTx: generateCancelPendingInvestmentTx,
+            generateApproveWithdrawTx: eurSvc.approveWithdraw,
             getBalance: eurSvc.balance,
+            generateCreateOrganizationTx: orgSvc.createOrganization,
+            generateCreateProjectTx: projSvc.createProject,
+            generateInvestTx: eurSvc.invest,
+            // generateCancelPendingInvestmentTx: generateCancelPendingInvestmentTx,
             // generateTransferTx: generateTransferTx,
             // activateOrganization: activateOrganization,
             // generateWithdrawOrganizationFundsTx: generateWithdrawOrganizationFundsTx,

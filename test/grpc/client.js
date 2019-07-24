@@ -81,6 +81,21 @@ module.exports = {
             })
         })
     },
+    generateInvestTx: async function(fromTxHash, projectTxHash, amount) {
+        return new Promise(resolve => {
+            client.generateInvestTx({
+                fromTxHash: fromTxHash,
+                projectTxHash: projectTxHash,
+                amount: amount
+            }, (err, result) => {
+                if (err != null) {
+                    throw new Error(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
     getBalance: async function(walletTxHash) {
         return new Promise(resolve => {
             client.getBalance({
@@ -104,6 +119,25 @@ module.exports = {
                     throw new Error(err)
                 } else {
                     resolve(result.active)
+                }
+            })
+        })
+    },
+    generateCreateProjectTx: async function(fromTxHash, orgTxHash, minInvestment, maxInvestment, investmentCap, endsAt) {
+        return new Promise(resolve => {
+            client.generateCreateProjectTx({
+                fromTxHash: fromTxHash,
+                organizationTxHash: orgTxHash,
+                maxInvestmentPerUser: maxInvestment,
+                minInvestmentPerUser: minInvestment,
+                investmentCap: investmentCap,
+                endInvestmentTime: endsAt
+            }, (err, result) => {
+                if (err != null) {
+                    console.log("err", err)
+                    throw new Error(err)
+                } else {
+                    resolve(result.tx)
                 }
             })
         })

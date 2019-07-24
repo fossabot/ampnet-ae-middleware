@@ -12,10 +12,6 @@ message GenerateAddWalletTxRequest {
     string wallet = 1;
 }
 
-message GenerateCreateOrganizationTxRequest {
-    string fromTxHash = 1;
-}
-
 message OrganizationExistsRequest {
     string organizationTxHash = 1;
 }
@@ -61,7 +57,7 @@ message GenerateApproveWithdrawTxRequest {
     string amount = 2;
 }
 
-message GenerateInvestmentTxRequest {
+message GenerateInvestTxRequest {
     string fromTxHash = 1;
     string projectTxHash = 2;
     string amount = 3;
@@ -95,15 +91,6 @@ message GenerateAddMemberTxRequest {
     string fromTxHash = 1;
     string organizationTxHash = 2;
     string memberTxHash = 3;
-}
-
-message GenerateAddProjectTxRequest {
-    string fromTxHash = 1;
-    string organizationTxHash = 2;
-    string maxInvestmentPerUser = 3;
-    string minInvestmentPerUser = 4;
-    string investmentCap = 5;
-    string endInvestmentTime = 6;
 }
 
 message OrganizationVerifiedRequest {
@@ -224,6 +211,20 @@ message PostTxResponse {
     string txHash = 1;
 }
 
+///////// Contract create messages /////////
+
+message GenerateCreateOrganizationTxRequest {
+    string fromTxHash = 1;
+}
+
+message GenerateCreateProjectTxRequest {
+    string fromTxHash = 1;
+    string organizationTxHash = 2;
+    string maxInvestmentPerUser = 3;
+    string minInvestmentPerUser = 4;
+    string investmentCap = 5;
+    string endInvestmentTime = 6;
+}
 
 ////////// Generic messages ////////////////
 
@@ -243,7 +244,6 @@ service BlockchainService {
     // Cooperative
 
     rpc generateAddWalletTx(GenerateAddWalletTxRequest) returns (RawTxResponse);
-    rpc generateCreateOrganizationTx(GenerateCreateOrganizationTxRequest) returns (RawTxResponse);
     rpc getOrganizations(Empty) returns (GetOrganizationsResponse);
     rpc isWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
     rpc organizationExists(OrganizationExistsRequest) returns (OrganizationExistsResponse);
@@ -254,7 +254,7 @@ service BlockchainService {
     rpc generateMintTx(GenerateMintTxRequest) returns (RawTxResponse);
     rpc generateBurnFromTx(GenerateBurnFromTxRequest) returns (RawTxResponse);
     rpc generateApproveWithdrawTx(GenerateApproveWithdrawTxRequest) returns (RawTxResponse);
-    rpc generateInvestmentTx(GenerateInvestmentTxRequest) returns (RawTxResponse);
+    rpc generateInvestTx(GenerateInvestTxRequest) returns (RawTxResponse);
     rpc generateCancelPendingInvestmentTx(GenerateCancelPendingInvestmentTxRequest) returns (RawTxResponse);
     rpc getBalance(BalanceRequest) returns (BalanceResponse);
     rpc generateTransferTx(GenerateTransferTxRequest) returns (RawTxResponse);
@@ -265,7 +265,6 @@ service BlockchainService {
     rpc activateOrganization(ActivateOrganizationRequest) returns (PostTxResponse);
     rpc generateWithdrawOrganizationFundsTx(GenerateWithdrawOrganizationFundsTxRequest) returns (RawTxResponse);
     rpc generateAddOrganizationMemberTx(GenerateAddMemberTxRequest) returns (RawTxResponse);
-    rpc generateAddOrganizationProjectTx(GenerateAddProjectTxRequest) returns (RawTxResponse);
     rpc isOrganizationVerified(OrganizationVerifiedRequest) returns (OrganizationVerifiedResponse);
     rpc getAllOrganizationProjects(OrganizationProjectsRequest) returns (OrganizationProjectsResponse);
     rpc getAllOrganizationMembers(OrganizationMembersRequest) returns (OrganizationMembersResponse);
@@ -285,6 +284,10 @@ service BlockchainService {
     rpc getProjectTotalInvestmentForUser(ProjectTotalInvestmentForUserRequest) returns (ProjectTotalInvestmentForUserResponse);
     rpc isProjectCompletelyFunded(ProjectCompletelyFundedRequest) returns (ProjectCompletelyFundedResponse);
 
+    // Contract create
+    
+    rpc generateCreateOrganizationTx(GenerateCreateOrganizationTxRequest) returns (RawTxResponse);
+    rpc generateCreateProjectTx(GenerateCreateProjectTxRequest) returns (RawTxResponse);
 
     // Transactions
 

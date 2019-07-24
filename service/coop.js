@@ -3,13 +3,20 @@ let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
 let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
+let util = require('../ae/util')
 
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
 async function addWallet(call, callback) {
     console.log(`\nReceived request to generate addWallet transaction.\nWallet: ${call.request.wallet}`)
     try {
-        let callData = await codec.coop.encodeAddWallet(call.request.wallet)
+        if (call.request.wallet.startsWith("th")) {
+            let txInfo = await client.instance().getTxInfo(call.request.wallet)
+            address = util.enforceAkPrefix(txInfo.contractId)
+        } else {
+            address = call.request.wallet
+        }
+        let callData = await codec.coop.encodeAddWallet(address)
         let coopAddress = contracts.getCoopAddress()
         let tx = await client.instance().contractCallTx({
             callerId : config.contracts.coop.owner,

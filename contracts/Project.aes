@@ -71,13 +71,13 @@ contract Project =
 
         recursive_investment_add(investmentsList)
 
-    stateful entrypoint invest() =
+    stateful entrypoint invest(investor: address) =
         let token = state.organization.coop().token()
-        let amount = token.allowance(Call.caller, Contract.address)
+        let amount = token.allowance(investor, Contract.address)
         
-        check_investment_preconditions(Call.caller, amount)
-        token.transfer_from(Call.caller, Contract.address, amount)
-        persist_investment(Call.caller, amount)
+        check_investment_preconditions(investor, amount)
+        token.transfer_from(investor, Contract.address, amount)
+        persist_investment(investor, amount)
 
 
     stateful entrypoint withdraw(tokenIssuer: address, amount: int) =

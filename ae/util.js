@@ -4,6 +4,10 @@ function enforceAkPrefix(address) {
     return address.replace("ct_", "ak_")
 }
 
+function enforceCtPrefix(address) {
+    return address.replace("ak_", "ct_")
+}
+
 function eurToToken(amount) {
     return (BigInt(amount) * tokenFactor).toString()
 }
@@ -14,6 +18,7 @@ function tokenToEur(amount) {
 
 module.exports = { 
     enforceAkPrefix,
+    enforceCtPrefix,
     eurToToken,
     tokenToEur
 }

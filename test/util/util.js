@@ -9,6 +9,18 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function currentTimeWithDaysOffset(days) {
+    var result = new Date();
+    result.setDate(result.getDate() + days);
+    return result.getTime();
+}
+
+function currentTimeWithSecondsOffset(seconds) {
+    var result = new Date();
+    result.setSeconds(result.getSeconds() + seconds);
+    return result.getTime();
+}
+
 async function waitMined(txHash) {
     return new Promise(async (resolve) => {
         client.instance().poll(txHash).then(async _ => {
@@ -49,4 +61,4 @@ function assertDbRecord(
 
 }
 
-module.exports = { waitMined, enforceAkPrefix, wipeDb }
+module.exports = { waitMined, enforceAkPrefix, wipeDb, currentTimeWithDaysOffset, currentTimeWithSecondsOffset }

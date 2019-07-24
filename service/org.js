@@ -20,7 +20,7 @@ async function createOrganization(call, callback) {
             gas: 50000,
             callData: callData
         })
-        console.log(`Successfully generated createOrganization transaction: ${result.tx}`)
+        console.log(`Successfully generated createOrganization transaction!`)
         callback(null, { tx: result.tx })
     } catch (error) {
         console.log(`Error while generating organization create transaction: ${error}`)

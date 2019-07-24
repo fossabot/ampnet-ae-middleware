@@ -10,6 +10,8 @@ const util = require('../ae/util')
 
 const TxState = enums.txState
 const TxType = enums.txType
+const WalletType = enums.walletType
+const SupervisorStatus = enums.supervisorStatus
 
 async function postTransaction(call, callback) {
     console.log(`\nReceived request to post transaction: ${call.request.data}`)
@@ -17,12 +19,12 @@ async function postTransaction(call, callback) {
         let tx = call.request.data
         let txUnpacked = TxBuilder.unpackTx(tx).tx.encodedTx
         let txInfo = await getTransactionType(txUnpacked)
-
+        
         await performSecurityChecks(txUnpacked, txInfo)
         let result = await client.instance().sendTransaction(tx, { waitMined: false })
         await persistTransaction(txUnpacked.tx, result.hash, txInfo)
 
-        updateTransactionState(result.hash)
+        updateTransactionState(result.hash, txInfo)
 
         console.log(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })
@@ -144,8 +146,8 @@ async function persistTransaction(tx, hash, txInfo) {
                 to_wallet: address,
                 input: tx.callData,
                 state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.NOT_REQUIRED,
                 type: TxType.WALLET_CREATE,
-                wallet: address,
                 created_at: new Date()
             }
             break
@@ -157,6 +159,7 @@ async function persistTransaction(tx, hash, txInfo) {
                 to_wallet: hash,
                 input: tx.callData,
                 state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.NOT_REQUIRED,
                 type: TxType.ORG_CREATE,
                 created_at: new Date()
             }
@@ -171,6 +174,7 @@ async function persistTransaction(tx, hash, txInfo) {
                 to_wallet: toTxHash,
                 input: tx.callData,
                 state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.NOT_REQUIRED,
                 type: TxType.DEPOSIT,
                 created_at: new Date(),
                 amount: amount
@@ -179,12 +183,19 @@ async function persistTransaction(tx, hash, txInfo) {
         case TxType.APPROVE:
             fromTxHash = (await repo.findByWallet(tx.callerId)).hash
             amount = util.tokenToEur(txInfo.callData.arguments[1].value)
+            spender = txInfo.callData.arguments[0].value
+            supervisorStatus = SupervisorStatus.NOT_REQUIRED
+            if (spender != config.contracts.eur.owner) {
+                spender = (await repo.findByWallet(spender)).hash
+                supervisorStatus = SupervisorStatus.REQUIRED
+            }
             record = {
                 hash: hash,
                 from_wallet: fromTxHash,
-                to_wallet: tx.callerId,
+                to_wallet: spender,
                 input: tx.callData,
                 state: TxState.PENDING,
+                supervisor_status: supervisorStatus,
                 type: TxType.APPROVE,
                 created_at: new Date(),
                 amount: amount
@@ -204,6 +215,7 @@ async function persistTransaction(tx, hash, txInfo) {
                 to_wallet: tx.callerId,
                 input: tx.callData,
                 state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.NOT_REQUIRED,
                 type: TxType.WITHDRAW,
                 created_at: new Date(),
                 amount: amount
@@ -216,6 +228,17 @@ async function persistTransaction(tx, hash, txInfo) {
         case TxType.ORG_ADD_MEMBER:
             break
         case TxType.PROJ_CREATE:
+            ownerTxHash = (await repo.findByWallet(tx.ownerId)).hash
+            record = {
+                hash: hash,
+                from_wallet: ownerTxHash,
+                to_wallet: hash,
+                input: tx.callData,
+                state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                type: TxType.PROJ_CREATE,
+                created_at: new Date()
+            }
             break
         case TxType.ORG_ACTIVATE:
             break
@@ -242,12 +265,34 @@ async function isWalletActive(wallet) {
     return result.decode()
 }
 
-async function updateTransactionState(hash) {
-    client.instance().poll(hash).then(pollInfo => {
-        client.instance().getTxInfo(hash).then(info => {
-            repo.updateTransactionState(hash, info, pollInfo.tx.type)
-        }).catch(console.log)
-    }).catch(console.log)
+async function updateTransactionState(hash, txInfo) {
+    await client.instance().poll(hash)
+    let info = await client.instance().getTxInfo(hash)
+    await repo.updateTransactionState(hash, info, txInfo)
+
+    if (info.returnType == "ok" && txInfo.type == TxType.APPROVE) {
+        let spender = txInfo.callData.arguments[0].value
+        if (spender != config.contracts.eur.owner) {
+            let spenderRecord = (await repo.findByWallet(spender))
+            if (spenderRecord.wallet_type == WalletType.PROJECT) {
+                let confirmInvestResult = await client.supervisor().contractCall(
+                    contracts.projSource,
+                    util.enforceCtPrefix(spenderRecord.wallet),
+                    enums.functions.proj.invest,
+                    [ info.callerId ]
+                ).catch(error => {
+                    console.log(error)
+                })
+                console.log("confirmInvestResult", confirmInvestResult)
+            }
+        }
+    }
+    
+    // client.instance().poll(hash).then(pollInfo => {
+    //     client.instance().getTxInfo(hash).then(info => {
+    //         repo.updateTransactionState(hash, info, pollInfo.tx.type, txInfo)
+    //     }).catch(console.log)
+    // }).catch(console.log)
 }
 
 module.exports = { postTransaction }

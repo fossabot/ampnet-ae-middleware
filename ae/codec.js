@@ -2,42 +2,46 @@ let client = require('./client')
 let contracts = require('./contracts')
 let functions = require('../enums/enums').functions
 
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
-
 async function encodeAddWallet(wallet) {
-    let encoded = await client.instance().contractEncodeCall(contracts.coopSource, functions.coop.addWallet, [ wallet ])
-    return encoded
+    return contracts.getCoopCompiled().encodeCall(functions.coop.addWallet, [ wallet ])
 }
 
 async function encodeCreateOrganization() {
-    let encoded = await contracts.getOrgCompiled().encodeCall("init", [ contracts.getCoopAddress() ])
-    //let encoded = await client.instance().contractEncodeCall(contracts.getOrgCompiled().bytecode, "init", [ contracts.getCoopAddress() ])
+    return contracts.getOrgCompiled().encodeCall("init", [ contracts.getCoopAddress() ])
+}
+
+async function encodeCreateProject(org, minInvestment, maxInvestment, investmentCap, endsAt) {
+    let encoded = await contracts.getProjCompiled().encodeCall(
+        "init", 
+        [
+            org,
+            minInvestment,
+            maxInvestment,
+            investmentCap,
+            endsAt
+        ]
+    )
     return encoded
 }
 
 async function encodeMint(address, amount) {
-    let encoded = await contracts.getEurCompiled().encodeCall(functions.eur.mint, [ address, amount ])
-    return encoded 
+    return contracts.getEurCompiled().encodeCall(functions.eur.mint, [ address, amount ])
 }
 
-async function encodeApproveWithdraw(amount) {
-    let encoded = await contracts.getEurCompiled().encodeCall(functions.eur.approve, [ config.contracts.eur.owner, amount ])
-    return encoded
+async function encodeApprove(spender, amount) {
+    return contracts.getEurCompiled().encodeCall(functions.eur.approve, [ spender, amount ])
 }
 
 async function encodeBurnFrom(address, amount) {
-    let encoded = await contracts.getEurCompiled().encodeCall(functions.eur.burnFrom, [ address, amount ])
-    return encoded
+    return contracts.getEurCompiled().encodeCall(functions.eur.burnFrom, [ address, amount ])
 }
 
 async function decodeDataBySource(source, fn, value) {
-    let decoded = await client.instance().contractDecodeCallDataBySourceAPI(source, fn, value)
-    return decoded
+    return client.instance().contractDecodeCallDataBySourceAPI(source, fn, value)
 }
 
 async function decodeDataByBytecode(bytecode, data) {
-    let decoded = await client.instance().contractDecodeCallDataByCodeAPI(bytecode, data)
-    return decoded
+    return client.instance().contractDecodeCallDataByCodeAPI(bytecode, data)
 }
 
 module.exports = {
@@ -49,8 +53,11 @@ module.exports = {
     },
     eur: {
         encodeMint,
-        encodeApproveWithdraw,
+        encodeApprove,
         encodeBurnFrom
+    },
+    proj: {
+        encodeCreateProject
     },
     decodeDataBySource,
     decodeDataByBytecode
