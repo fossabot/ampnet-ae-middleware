@@ -142,6 +142,21 @@ module.exports = {
             })
         })
     },
+    generateStartRevenueSharesPayoutTx: async function(fromTxHash, projectTxHash, revenue) {
+        return new Promise(resolve => {
+            client.generateStartRevenueSharesPayoutTx({
+                fromTxHash,
+                projectTxHash,
+                revenue
+            }, (err, result) => {
+                if (err != null) {
+                    throw new Error(err)
+                } else {
+                    resolve(result.tx)
+                }
+            })
+        })
+    },
     postTransaction: async function(data) {
         return new Promise(resolve => {
             client.postTransaction({

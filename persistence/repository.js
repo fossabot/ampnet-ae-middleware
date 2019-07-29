@@ -5,7 +5,7 @@ let client = require('../ae/client')
 let knex = require('knex')(config)
 let contracts = require('../ae/contracts')
 
-let { txState: TxState, txType: TxType, walletType: WalletType } = require('../enums/enums')
+let { txState: TxState, txType: TxType, walletType: WalletType, supervisorStatus: SupervisorStatus } = require('../enums/enums')
 
 async function getWalletOrThrow(txHash) {
     return new Promise(resolve => {
@@ -93,6 +93,56 @@ async function saveTransaction(tx) {
     })
 }
 
+async function update(hash, data) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where({ hash: hash })
+            .update(data)
+            .then( _ => {
+                resolve()
+            })
+            .catch(error => {
+                console.log("save tx error", error)
+            })
+    })
+}
+
+async function saveHash(hash) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .insert({
+                hash: hash,
+                state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.NOT_REQUIRED, // TODO: rethink about this
+                created_at: new Date()
+            })
+            .then(_ => {
+                resolve()
+            })
+    })
+}
+
+async function getWalletTypeOrThrow(address) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where('type', 'in', [TxType.ORG_CREATE, TxType.PROJ_CREATE])
+            .andWhere({to_wallet: address})
+            .then(rows => {
+                switch (rows.length) {
+                    case 0:
+                        resolve(WalletType.USER)
+                        break
+                    case 1:
+                        if(record[0].type == TxType.ORG_CREATE) resolve(WalletType.ORGANIZATION)
+                        else resolve(WalletType.PROJECT)
+                        break
+                    default:
+                        throw new Error("Expected at max 1 row for searching org/proj creation with given wallet.")
+                }
+            })
+    })
+}
+
 async function getAll() {
     return new Promise( resolve => {
         knex('transaction')
@@ -167,5 +217,8 @@ module.exports = {
     getAll,
     updateTransactionState,
     getRecord,
-    walletExists
+    walletExists,
+    update,
+    saveHash,
+    getWalletTypeOrThrow
 }

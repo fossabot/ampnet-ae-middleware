@@ -1,8 +1,12 @@
+let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let util = require('../ae/util')
+
 let txType = {
     WALLET_CREATE: "WALLET_CREATE",
     ORG_CREATE: "ORG_CREATE",
     DEPOSIT: "DEPOSIT",
-    APPROVE: "APPROVE",
+    APPROVE_INVESTMENT: "APPROVE_INVESTMENT",
+    APPROVE_USER_WITHDRAW: "APPROVE_USER_WITHDRAW",
     PENDING_ORG_WITHDRAW: "PENDGING_ORG_WITHDRAW",
     PENDING_PROJ_WITHDRAW: "PENDING_PROJ_WITHDRAW",
     WITHDRAW: "WITHDRAW",
@@ -17,6 +21,11 @@ let txType = {
     WITHDRAW_INVESTMENT: "WITHDRAW_INVESTMENT"
 }
 
+let events = new Map([
+    [util.blake2b('WalletAdded'), txType.WALLET_CREATE],
+    [util.blake2b('RevenueSharePayout'), txType.START_REVENUE_PAYOUT]
+])
+
 let txState = {
     MINED: "MINED",
     PENDING: "PENDING",
@@ -27,6 +36,13 @@ let walletType = {
     USER: "USER",
     ORGANIZATION: "ORGANIZATION",
     PROJECT: "PROJECT"
+}
+
+let contractType = {
+    COOP: "COOP",
+    EUR: "EUR",
+    ORG: "ORG",
+    PROJ: "PROJ"
 }
 
 let supervisorStatus = {
@@ -48,7 +64,9 @@ let functions = {
         approve: "approve"
     },
     proj: {
-        invest: "invest"
+        invest: "invest",
+        startRevenueSharesPayout: "start_revenue_shares_payout",
+        payoutRevenueSharesBatch: "payout_revenue_shares"
     }
 }
 
@@ -57,11 +75,16 @@ let txStateValues = Object.values(txState)
 let walletTypeValues = Object.values(walletType)
 let supervisorStatusValues = Object.values(supervisorStatus)
 
-function fromFunctionName(name) {
-    switch(name) {
+function fromFunctionCall(fn, callData) {
+    switch(fn) {
         case "add_wallet": return txType.WALLET_CREATE
         case "mint": return txType.DEPOSIT
-        case "approve": return txType.APPROVE
+        case "approve":
+            if (callData.arguments[0].value == config.contracts.eur.owner) {
+                return txType.APPROVE_USER_WITHDRAW
+            } else {
+                return txType.APPROVE_INVESTMENT
+            }
         case "withdraw": return txType.PENDING_PROJ_WITHDRAW
         case "burn": return txType.WITHDRAW
         case "invest": return txType.INVEST
@@ -72,6 +95,15 @@ function fromFunctionName(name) {
     }  
 }
 
+function fromEvent(event) {
+    let eventHex = util.bigNumberToHex(event)
+    if (events.has(eventHex)) {
+        return events.get(eventHex)
+    } else {
+        throw new Error(`Could not convert event ${event} to transaction type!`)
+    }
+}
+
 module.exports = {
     txType,
     txState,
@@ -80,7 +112,9 @@ module.exports = {
     supervisorStatus,
     supervisorStatusValues,
     walletType,
+    contractType,
     walletTypeValues,
     functions,
-    fromFunctionName
+    fromFunctionCall,
+    fromEvent
 }

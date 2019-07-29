@@ -4,6 +4,7 @@
     "@aeternity/aepp-sdk": "^4.2.0",
     "@grpc/proto-loader": "^0.4.0",
     "big-integer": "^1.6.44",
+    "bignumber.js": "^9.0.0",
     "google-protobuf": "^3.6.1",
     "grpc": "^1.18.0",
     "knex": "^0.16.3",

@@ -61,4 +61,4 @@ function assertDbRecord(
 
 }
 
-module.exports = { waitMined, enforceAkPrefix, wipeDb, currentTimeWithDaysOffset, currentTimeWithSecondsOffset }
+module.exports = { waitMined, enforceAkPrefix, wipeDb, currentTimeWithDaysOffset, currentTimeWithSecondsOffset, sleep }

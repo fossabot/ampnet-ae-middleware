@@ -56,7 +56,7 @@ module.exports = {
             // getAllOrganizationProjects: getAllOrganizationProjects,
             // getAllOrganizationMembers: getAllOrganizationMembers,
             // generateConfirmInvestmentTx: generateConfirmInvestmentTx,
-            // generateStartRevenuePayoutTx: generateStartRevenuePayoutTx,
+            generateStartRevenueSharesPayoutTx: projSvc.startRevenueSharesPayout,
             // generatePayoutRevenueSharesTx: generatePayoutRevenueSharesTx,
             // generateWithdrawInvestmentTx: generateWithdrawInvestmentTx,
             // generateWithdrawProjectFundsTx: generateWithdrawProjectFundsTx,

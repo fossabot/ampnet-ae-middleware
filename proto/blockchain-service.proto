@@ -125,7 +125,7 @@ message GenerateConfirmInvestmentTxRequest {
     string projectTxHash = 2;
 }
 
-message GenerateStartRevenuePayoutTxRequest {
+message GenerateStartRevenueSharesPayoutTxRequest {
     string fromTxHash = 1;
     string projectTxHash = 2;
     string revenue = 3;
@@ -273,7 +273,7 @@ service BlockchainService {
     // Project
 
     rpc generateConfirmInvestmentTx(GenerateConfirmInvestmentTxRequest) returns (RawTxResponse);
-    rpc generateStartRevenuePayoutTx(GenerateStartRevenuePayoutTxRequest) returns (RawTxResponse);
+    rpc generateStartRevenueSharesPayoutTx(GenerateStartRevenueSharesPayoutTxRequest) returns (RawTxResponse);
     rpc generatePayoutRevenueSharesTx(GeneratePayoutRevenueSharesTxRequest) returns (RawTxResponse);
     rpc generateWithdrawInvestmentTx(GenerateWithdrawInvestmentTxRequest) returns (RawTxResponse);
     rpc generateWithdrawProjectFundsTx(GenerateWithdrawProjectFundsTx) returns (RawTxResponse);

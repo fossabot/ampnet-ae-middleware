@@ -41,6 +41,33 @@ async function createProject(call, callback) {
     }
 }
 
+async function startRevenueSharesPayout(call, callback) {
+    console.log(`\nReceived request to generate startRevenueSharesPayout transaction.\Caller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
+    let fromWallet = (await repo.getWalletOrThrow(call.request.fromTxHash)).wallet
+    console.log(`Caller wallet: ${fromWallet}`)
+    let revenue = util.eurToToken(call.request.revenue)
+    console.log(`Revenue: ${revenue}`)
+    let projectWallet = (await repo.getWalletOrThrow(call.request.projectTxHash)).wallet
+    console.log(`Project: ${projectWallet}`)
+    let callData = await codec.proj.encodeStartRevenueSharesPayout(revenue)
+    let tx = await client.instance().contractCallTx({
+        callerId: fromWallet,
+        contractId: util.enforceCtPrefix(projectWallet),
+        abiVersion: 1,
+        amount: 0,
+        gas: 10000,
+        callData: callData
+    })
+    console.log(`Successfully generated startRevenueSharesPayout transaction: ${tx}`)
+    callback(null, { tx: tx })
+    try {
+    
+    } catch (error) {
+        console.log(`Error generating createProject transaction: ${error}`)
+        callback(error, null)
+    } 
+}
 
 
-module.exports = { createProject }
+
+module.exports = { createProject, startRevenueSharesPayout }

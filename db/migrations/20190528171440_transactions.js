@@ -4,12 +4,12 @@ exports.up = function(knex, Promise) {
     return knex.schema.createTable('transaction', function (table) {
         table.increments();
         table.string('hash').notNullable().unique();
-        table.string('from_wallet').notNullable();
-        table.string('to_wallet').notNullable();
-        table.string('input', 400).notNullable();
+        table.string('from_wallet');
+        table.string('to_wallet');
+        table.string('input', 400);
         table.enu('state', enums.txStateValues).notNullable();
         table.enu('supervisor_status', enums.supervisorStatusValues).notNullable();
-        table.enu('type', enums.txTypeValues).notNullable();
+        table.enu('type', enums.txTypeValues);
         table.bigInteger('amount');
         table.string('wallet');
         table.enu('wallet_type', enums.walletTypeValues);

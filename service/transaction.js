@@ -7,6 +7,7 @@ const contracts = require('../ae/contracts')
 const config = require('../env.json')[process.env.NODE_ENV || 'development']
 const codec = require('../ae/codec')
 const util = require('../ae/util')
+const contractUtil = require('../ae/contract-util')
 
 const TxState = enums.txState
 const TxType = enums.txType
@@ -22,16 +23,71 @@ async function postTransaction(call, callback) {
         
         await performSecurityChecks(txUnpacked, txInfo)
         let result = await client.instance().sendTransaction(tx, { waitMined: false })
-        await persistTransaction(txUnpacked.tx, result.hash, txInfo)
+        processTransaction(result.hash)
 
-        updateTransactionState(result.hash, txInfo)
 
-        console.log(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
+        // await persistTransaction(txUnpacked.tx, result.hash, txInfo)
+
+        // updateTransactionState(result.hash, txInfo)
+
+        // console.log(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })
     } catch(err) {
         console.log("err", err)
         console.log(`Error while posting transaction: ${err}`)
         callback(err, null)
+    }
+}
+
+async function processTransaction(hash) {
+    await repo.saveHash(hash)
+    let poll = await client.instance().poll(hash)
+    console.log("poll", poll)
+    let info = await client.instance().getTxInfo(hash)
+    console.log("info", info)
+    if (info.returnType == 'ok') {
+        // handle success
+        info.log.forEach(async (event) => {
+            type = enums.fromEvent(event.topics[0], poll)
+            switch (type) {
+                case TxType.WALLET_CREATE:
+                    address = util.decodeAddress(event.topics[1])
+                    walletType = await repo.getWalletTypeOrThrow(address)
+                    repo.update(hash, {
+                        from_wallet: info.result.callerId,
+                        to_wallet: address,
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        type: TxType.WALLET_CREATE,
+                        wallet: address,
+                        wallet_type: walletType,
+                        processed_at: new Date()
+                    })
+                    break
+                case TxType.ORG_CREATE:
+                    
+                    break
+                case TxType.PROJ_CREATE:
+                    break
+                case TxType.DEPOSIT:
+                    break
+                case TxType.APPROVE_USER_WITHDRAW:
+                    break
+                case TxType.WITHDRAW:
+                    break
+                case TxType.APPROVE_INVESTMENT:
+                    break
+                case TxType.INVEST:
+                    break
+                case TxType.START_REVENUE_PAYOUT:
+                    break
+                case TxType.SHARE_PAYOUT:
+                    break
+            }    
+        })
+    } else {
+        // handle failure
     }
 }
 
@@ -108,10 +164,10 @@ async function getTransactionType(unpackedTx) {
     let type
     switch(unpackedTx.txType) {
         case 'contractCallTx':
-            contract = await contracts.getContractFromAddress(unpackedTx.tx.contractId)
+            contract = await contractUtil.getContractFromAddress(unpackedTx.tx.contractId)
             fn = (await codec.decodeDataByBytecode(contract.bytecode, unpackedTx.tx.callData)).function
             callData = await codec.decodeDataBySource(contract.source, fn, unpackedTx.tx.callData)
-            type = enums.fromFunctionName(fn)
+            type = enums.fromFunctionCall(fn, callData)
             break
         case 'contractCreateTx':
             switch (unpackedTx.tx.code) {
@@ -180,23 +236,35 @@ async function persistTransaction(tx, hash, txInfo) {
                 amount: amount
             }
             break
-        case TxType.APPROVE:
+        case TxType.APPROVE_USER_WITHDRAW:
             fromTxHash = (await repo.findByWallet(tx.callerId)).hash
             amount = util.tokenToEur(txInfo.callData.arguments[1].value)
             spender = txInfo.callData.arguments[0].value
-            supervisorStatus = SupervisorStatus.NOT_REQUIRED
-            if (spender != config.contracts.eur.owner) {
-                spender = (await repo.findByWallet(spender)).hash
-                supervisorStatus = SupervisorStatus.REQUIRED
-            }
             record = {
                 hash: hash,
                 from_wallet: fromTxHash,
                 to_wallet: spender,
                 input: tx.callData,
                 state: TxState.PENDING,
-                supervisor_status: supervisorStatus,
-                type: TxType.APPROVE,
+                supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                type: TxType.APPROVE_USER_WITHDRAW,
+                created_at: new Date(),
+                amount: amount
+            }
+            break
+        case TxType.APPROVE_INVESTMENT:
+            fromTxHash = (await repo.findByWallet(tx.callerId)).hash
+            amount = util.tokenToEur(txInfo.callData.arguments[1].value)
+            project = txInfo.callData.arguments[0].value
+            projectWalletTxHash = (await repo.findByWallet(project)).hash
+            record = {
+                hash: hash,
+                from_wallet: fromTxHash,
+                to_wallet: projectWalletTxHash,
+                input: tx.callData,
+                state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.REQUIRED,
+                type: TxType.APPROVE_INVESTMENT,
                 created_at: new Date(),
                 amount: amount
             }
@@ -243,6 +311,19 @@ async function persistTransaction(tx, hash, txInfo) {
         case TxType.ORG_ACTIVATE:
             break
         case TxType.START_REVENUE_PAYOUT:
+            callerTxHash = (await repo.findByWallet(tx.callerId)).hash
+            projectTxHash = (await repo.findByWallet(util.enforceCtPrefix(tx.contractId))).hash
+            revenue = util.tokenToEur(txInfo.callData.arguments[0].value)
+            record = {
+                hash: hash,
+                from_wallet: callerTxHash,
+                to_wallet: projectTxHash,
+                input: tx.callData,
+                state: TxState.PENDING,
+                supervisor_status: SupervisorStatus.REQUIRED,
+                type: TxType.START_REVENUE_PAYOUT,
+                created_at: new Date()
+            }
             break
         case TxType.REVENUE_PAYOUT:
             break
@@ -266,33 +347,61 @@ async function isWalletActive(wallet) {
 }
 
 async function updateTransactionState(hash, txInfo) {
-    await client.instance().poll(hash)
+    let poll = await client.instance().poll(hash)
+    console.log("poll", poll)
     let info = await client.instance().getTxInfo(hash)
     await repo.updateTransactionState(hash, info, txInfo)
 
-    if (info.returnType == "ok" && txInfo.type == TxType.APPROVE) {
-        let spender = txInfo.callData.arguments[0].value
-        if (spender != config.contracts.eur.owner) {
-            let spenderRecord = (await repo.findByWallet(spender))
-            if (spenderRecord.wallet_type == WalletType.PROJECT) {
-                let confirmInvestResult = await client.supervisor().contractCall(
-                    contracts.projSource,
-                    util.enforceCtPrefix(spenderRecord.wallet),
-                    enums.functions.proj.invest,
-                    [ info.callerId ]
-                ).catch(error => {
-                    console.log(error)
-                })
-                console.log("confirmInvestResult", confirmInvestResult)
+    // handle special cases
+    if (info.returnType == "ok") {
+        if (txInfo.type == TxType.APPROVE && txInfo.callData.arguments[0].value != config.contracts.eur.owner) {
+
+        }
+    }
+    // handle invest part of approve->invest procedure automatically (worker calls invest() on Project contract and stores tx in db)
+    if (info.returnType == "ok") {
+        if (txInfo.type == TxType.APPROVE_INVESTMENT) {
+            handleApproveInvestmentTransaction(hash, info, txInfo)
+        } else if (txInfo.type == TxType.START_REVENUE_PAYOUT) {
+            handleRevenueSharesPayout(hash, info, txInfo)
+        }
+    }
+}
+
+async function handleApproveInvestmentTransaction(hash, info, txInfo) {
+    let spender = txInfo.callData.arguments[0].value
+    if (spender != config.contracts.eur.owner) {
+        let spenderRecord = (await repo.findByWallet(spender))
+        if (spenderRecord.wallet_type == WalletType.PROJECT) {
+            let confirmInvestResult = await client.supervisor().contractCall(
+                contracts.projSource,
+                util.enforceCtPrefix(spenderRecord.wallet),
+                enums.functions.proj.invest,
+                [ info.callerId ]
+            ).catch(error => {
+                console.log(error)
+            })
+            if (confirmInvestResult.returnType == "ok") {
+                repo.update(hash, { supervisor_status: SupervisorStatus.PROCESSED })
             }
         }
     }
-    
-    // client.instance().poll(hash).then(pollInfo => {
-    //     client.instance().getTxInfo(hash).then(info => {
-    //         repo.updateTransactionState(hash, info, pollInfo.tx.type, txInfo)
-    //     }).catch(console.log)
-    // }).catch(console.log)
+}
+
+async function handleRevenueSharesPayout(hash, info, txInfo) {
+    var shouldPayoutAnotherBatch
+    do {
+        batchPayout = await client.supervisor().contractCall(
+            contracts.projSource,
+            info.contractId,
+            enums.functions.proj.payoutRevenueSharesBatch,
+            [ ]
+        )
+        console.log("batchPayout", batchPayout)
+        console.log("batchPayout - log", batchPayout.result.log)
+        shouldPayoutAnotherBatch = await batchPayout.decode()
+        console.log("shouldPayoutAnotherBatch", shouldPayoutAnotherBatch)
+    } while(shouldPayoutAnotherBatch)
 }
 
 module.exports = { postTransaction }
