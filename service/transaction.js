@@ -47,18 +47,21 @@ async function processTransaction(hash) {
     console.log("info", info)
     if (info.returnType == 'ok') {
         // handle success
-        info.log.forEach(async (event) => {
+        for (event of info.log) {
+            console.log("event", event)
             type = enums.fromEvent(event.topics[0], poll)
+            console.log("type", type)
             switch (type) {
                 case TxType.WALLET_CREATE:
                     address = util.decodeAddress(event.topics[1])
                     walletType = await repo.getWalletTypeOrThrow(address)
-                    repo.update(hash, {
-                        from_wallet: info.result.callerId,
+                    supervisorStatus = (walletType == WalletType.USER) ? SupervisorStatus.REQUIRED : SupervisorStatus.NOT_REQUIRED
+                    tx = await repo.update(hash, {
+                        from_wallet: info.callerId,
                         to_wallet: address,
                         input: poll.tx.callData,
                         state: TxState.MINED,
-                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        supervisor_status: supervisorStatus,
                         type: TxType.WALLET_CREATE,
                         wallet: address,
                         wallet_type: walletType,
@@ -66,26 +69,160 @@ async function processTransaction(hash) {
                     })
                     break
                 case TxType.ORG_CREATE:
-                    
+                    tx = await repo.update(hash, {
+                        from_wallet: info.callerId,
+                        to_wallet: util.enforceAkPrefix(info.contractId),
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        type: TxType.ORG_CREATE,
+                        processed_at: new Date()
+                    })
                     break
                 case TxType.PROJ_CREATE:
+                    tx = await repo.update(hash, {
+                        from_wallet: info.callerId,
+                        to_wallet: util.enforceAkPrefix(info.contractId),
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        type: TxType.PROJ_CREATE,
+                        processed_at: new Date()
+                    })
                     break
                 case TxType.DEPOSIT:
+                    address = util.decodeAddress(event.topics[1])
+                    amount = util.tokenToEur(event.topics[2])
+                    tx = await repo.update(hash, {
+                        from_wallet: info.callerId,
+                        to_wallet: address,
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        type: TxType.DEPOSIT,
+                        amount: amount,
+                        processed_at: new Date()
+                    })
                     break
-                case TxType.APPROVE_USER_WITHDRAW:
+                case TxType.APPROVE:
+                    spender = util.decodeAddress(event.topics[1])
+                    amount = util.tokenToEur(event.topics[2])
+                    type = (spender == config.contracts.eur.owner) ? TxType.APPROVE_USER_WITHDRAW : TxType.APPROVE_INVESTMENT
+                    supervisorStatus = (type == TxType.APPROVE_INVESTMENT) ? SupervisorStatus.REQUIRED : SupervisorStatus.NOT_REQUIRED
+                    tx = await repo.update(hash, {
+                        from_wallet: info.callerId,
+                        to_wallet: spender,
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: supervisorStatus,
+                        type: type,
+                        amount: amount,
+                        processed_at: new Date()
+                    })
                     break
                 case TxType.WITHDRAW:
-                    break
-                case TxType.APPROVE_INVESTMENT:
+                    withdrawFrom = util.decodeAddress(event.topics[1])
+                    amount = util.tokenToEur(event.topics[2])
+                    tx = await repo.update(hash, {
+                        from_wallet: withdrawFrom,
+                        to_wallet: info.callerId,
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        type: TxType.WITHDRAW,
+                        amount: amount,
+                        processed_at: new Date()
+                    })
                     break
                 case TxType.INVEST:
+                    investor = util.decodeAddress(event.topics[1])
+                    amount = util.tokenToEur(event.topics[2])
+                    tx = await repo.update(hash, {
+                        from_wallet: investor,
+                        to_wallet: util.enforceAkPrefix(info.contractId),
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        type: TxType.INVEST,
+                        amount: amount,
+                        processed_at: new Date()
+                    })
                     break
                 case TxType.START_REVENUE_PAYOUT:
+                    amount = util.tokenToEur(event.topics[1])
+                    tx = await repo.update(hash, {
+                        from_wallet: info.callerId,
+                        to_wallet: util.enforceAkPrefix(info.contractId),
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.REQUIRED,
+                        type: TxType.START_REVENUE_PAYOUT,
+                        amount: amount,
+                        processed_at: new Date()
+                    })
+                    console.log("saved start revenue payout", tx)
                     break
                 case TxType.SHARE_PAYOUT:
+                    investor = util.decodeAddress(event.topics[1])
+                    share = util.tokenToEur(event.topics[2])
+                    tx = await repo.update(hash, {
+                        from_wallet: util.enforceAkPrefix(info.contractId),
+                        to_wallet: investor,
+                        input: poll.tx.callData,
+                        state: TxState.MINED,
+                        supervisor_status: SupervisorStatus.NOT_REQUIRED,
+                        type: TxType.SHARE_PAYOUT,
+                        amount: share,
+                        processed_at: new Date()
+                    })
                     break
-            }    
-        })
+                default:
+                    continue
+            }
+
+            if (tx.supervisor_status == SupervisorStatus.REQUIRED) {
+                switch (tx.type) {
+                    case TxType.WALLET_CREATE:
+                        if (tx.wallet_type == WalletType.USER) {
+                            await client.supervisor().spend(300000000000000000, tx.wallet).catch(console.log)
+                            console.log(`Transferred 0.3AE to user with wallet ${tx.wallet} (welcome gift)`)
+                            await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
+                        }
+                        break
+                    case TxType.APPROVE_INVESTMENT:
+                        contract = util.enforceCtPrefix(tx.to_wallet)
+                        result = await client.supervisor().contractCall(
+                            contracts.projSource,
+                            contract,
+                            enums.functions.proj.invest,
+                            [ tx.from_wallet ]
+                        ).catch(console.log)
+                        await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
+                        console.log(`Processed approve investment transaction by calling invest() on Project ${contract} for investor ${tx.from_wallet}`)
+                        processTransaction(result.hash)
+                        break 
+                    case TxType.START_REVENUE_PAYOUT:
+                        console.log("handle special case start revenue payout")
+                        contract = util.enforceCtPrefix(tx.to_wallet)
+                        batchCount = 1 
+                        do {
+                            batchPayout = await client.supervisor().contractCall(
+                                contracts.projSource,
+                                contract,
+                                enums.functions.proj.payoutRevenueSharesBatch,
+                                [ ]
+                            ).catch(console.log)
+                            shouldPayoutAnotherBatch = await batchPayout.decode()
+                            console.log(`Payed out batch ${batchCount} for investors in Project ${contract}. Should pay another batch: ${shouldPayoutAnotherBatch}`)
+                            batchCount++
+                            processTransaction(batchPayout.hash)
+                        } while(shouldPayoutAnotherBatch)
+                        await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
+                        console.log(`All batches payed out.`)
+                        break
+                }
+            }
+        }
     } else {
         // handle failure
     }

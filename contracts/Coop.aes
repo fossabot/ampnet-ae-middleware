@@ -6,7 +6,6 @@ contract Coop =
     datatype event =
         WalletAdded(address)
 
-
     record state = {
         owner                      : address,
         activeWallets              : map(address, bool),

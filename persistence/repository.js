@@ -16,8 +16,6 @@ async function getWalletOrThrow(txHash) {
             let record = rows[0]
             switch (record.type) {
                 case TxType.WALLET_CREATE:
-                case TxType.ORG_CREATE:
-                case TxType.PROJ_CREATE: // TODO - project creating logic now different, apply changes
                     switch (record.state) {
                         case TxState.MINED:
                             resolve(record)
@@ -96,10 +94,11 @@ async function saveTransaction(tx) {
 async function update(hash, data) {
     return new Promise(resolve => {
         knex('transaction')
+            .returning('*')
             .where({ hash: hash })
             .update(data)
-            .then( _ => {
-                resolve()
+            .then(rows => {
+                resolve(rows[0])
             })
             .catch(error => {
                 console.log("save tx error", error)
@@ -133,7 +132,7 @@ async function getWalletTypeOrThrow(address) {
                         resolve(WalletType.USER)
                         break
                     case 1:
-                        if(record[0].type == TxType.ORG_CREATE) resolve(WalletType.ORGANIZATION)
+                        if(rows[0].type == TxType.ORG_CREATE) resolve(WalletType.ORGANIZATION)
                         else resolve(WalletType.PROJECT)
                         break
                     default:

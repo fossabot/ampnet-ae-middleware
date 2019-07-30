@@ -2,6 +2,12 @@ contract CoopInterface =
     entrypoint is_wallet_active : (address) => bool
 
 contract EUR =
+
+  datatype event =
+      TokensMinted(address, int)
+    | ApproveSpender(address, int)
+    | TokensBurned(address, int)
+
   record state = {
     owner            : address,
     totalSupply      : int,
@@ -42,7 +48,7 @@ contract EUR =
     // require(spender != #0, "Invalid spender address")
 
     put(state{ allowed[(Call.caller, spender)] = value })
-
+    Chain.event(ApproveSpender(spender, value))
     true
 
   stateful function _transfer(from: address, to: address, value: int) : bool =
@@ -91,7 +97,7 @@ contract EUR =
 
     put(state{ totalSupply = state.totalSupply + value,
           balances[account] = balance_of(account) + value })
-
+    Chain.event(TokensMinted(account, value))
     true
 
   stateful entrypoint burn(account: address, value: int) : bool =
@@ -102,7 +108,7 @@ contract EUR =
 
     put(state{ totalSupply = state.totalSupply - value,
           balances[account] = balance_of(account) - value })
-
+    Chain.event(TokensBurned(account, value))
     true
 
   function only_owner() =

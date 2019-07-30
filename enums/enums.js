@@ -5,6 +5,7 @@ let txType = {
     WALLET_CREATE: "WALLET_CREATE",
     ORG_CREATE: "ORG_CREATE",
     DEPOSIT: "DEPOSIT",
+    APPROVE: "APPROVE",
     APPROVE_INVESTMENT: "APPROVE_INVESTMENT",
     APPROVE_USER_WITHDRAW: "APPROVE_USER_WITHDRAW",
     PENDING_ORG_WITHDRAW: "PENDGING_ORG_WITHDRAW",
@@ -16,14 +17,20 @@ let txType = {
     PROJ_CREATE: "PROJ_CREATE",
     ORG_ACTIVATE: "ORG_ACTIVATE",
     START_REVENUE_PAYOUT: "START_REVENUE_PAYOUT",
-    REVENUE_PAYOUT: "REVENUE_PAYOUT",
     SHARE_PAYOUT: "SHARE_PAYOUT",
     WITHDRAW_INVESTMENT: "WITHDRAW_INVESTMENT"
 }
 
 let events = new Map([
     [util.blake2b('WalletAdded'), txType.WALLET_CREATE],
-    [util.blake2b('RevenueSharePayout'), txType.START_REVENUE_PAYOUT]
+    [util.blake2b('RevenueSharePayout'), txType.SHARE_PAYOUT],
+    [util.blake2b('OrganizationCreated'), txType.ORG_CREATE],
+    [util.blake2b('TokensMinted'), txType.DEPOSIT],
+    [util.blake2b('ApproveSpender'), txType.APPROVE],
+    [util.blake2b('TokensBurned'), txType.WITHDRAW],
+    [util.blake2b('ProjectCreated'), txType.PROJ_CREATE],
+    [util.blake2b('StartRevenuePayout'), txType.START_REVENUE_PAYOUT],
+    [util.blake2b('NewInvestment'), txType.INVEST]
 ])
 
 let txState = {
@@ -91,7 +98,7 @@ function fromFunctionCall(fn, callData) {
         case "transfer": return txType.TRANSFER
         case "add_member": return txType.ORG_ADD_MEMBER
         case "start_revenue_shares_payout": return txType.START_REVENUE_PAYOUT
-        case "payout_revenue_shares": return txType.REVENUE_PAYOUT
+        case "payout_revenue_shares": return txType.SHARE_PAYOUT
     }  
 }
 
