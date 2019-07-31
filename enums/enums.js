@@ -1,100 +1,97 @@
-let txType = {
+let util = require('../ae/util')
+
+let TxType = {
     WALLET_CREATE: "WALLET_CREATE",
     ORG_CREATE: "ORG_CREATE",
     DEPOSIT: "DEPOSIT",
     APPROVE: "APPROVE",
+    APPROVE_INVESTMENT: "APPROVE_INVESTMENT",
+    APPROVE_USER_WITHDRAW: "APPROVE_USER_WITHDRAW",
     PENDING_ORG_WITHDRAW: "PENDGING_ORG_WITHDRAW",
     PENDING_PROJ_WITHDRAW: "PENDING_PROJ_WITHDRAW",
     WITHDRAW: "WITHDRAW",
     INVEST: "INVEST",
     TRANSFER: "TRANSFER",
     ORG_ADD_MEMBER: "ORG_ADD_MEMBER",
-    ORG_ADD_PROJECT: "ORG_ADD_PROJECT",
+    PROJ_CREATE: "PROJ_CREATE",
     ORG_ACTIVATE: "ORG_ACTIVATE",
     START_REVENUE_PAYOUT: "START_REVENUE_PAYOUT",
-    REVENUE_PAYOUT: "REVENUE_PAYOUT",
     SHARE_PAYOUT: "SHARE_PAYOUT",
     WITHDRAW_INVESTMENT: "WITHDRAW_INVESTMENT"
 }
 
-let txState = {
+let events = new Map([
+    [util.blake2b('WalletAdded'), TxType.WALLET_CREATE],
+    [util.blake2b('RevenueSharePayout'), TxType.SHARE_PAYOUT],
+    [util.blake2b('OrganizationCreated'), TxType.ORG_CREATE],
+    [util.blake2b('TokensMinted'), TxType.DEPOSIT],
+    [util.blake2b('ApproveSpender'), TxType.APPROVE],
+    [util.blake2b('TokensBurned'), TxType.WITHDRAW],
+    [util.blake2b('ProjectCreated'), TxType.PROJ_CREATE],
+    [util.blake2b('StartRevenuePayout'), TxType.START_REVENUE_PAYOUT],
+    [util.blake2b('NewInvestment'), TxType.INVEST]
+])
+
+let TxState = {
     MINED: "MINED",
     PENDING: "PENDING",
     FAILED: "FAILED"
 }
 
-let txTypeValues = Object.values(txType)
-let txStateValues = Object.values(txState)
+let WalletType = {
+    USER: "USER",
+    ORGANIZATION: "ORGANIZATION",
+    PROJECT: "PROJECT"
+}
 
-function toGrpcType(type) {
-    switch (type) {
-        case txType.WALLET_CREATE: return 0
-        case txType.ORG_CREATE: return 1
-        case txType.DEPOSIT: return 2
-        case txType.APPROVE: return 3
-        case txType.PENDING_ORG_WITHDRAW: return 4
-        case txType.PENDING_PROJ_WITHDRAW: return 5
-        case txType.WITHDRAW: return 6
-        case txType.INVEST: return 7
-        case txType.TRANSFER: return 8
-        case txType.ORG_ADD_MEMBER: return 9
-        case txType.ORG_ADD_PROJECT: return 10
-        case txType.ORG_ACTIVATE: return 11
-        case txType.START_REVENUE_PAYOUT: return 12
-        case txType.REVENUE_PAYOUT: return 13
-        case txType.SHARE_PAYOUT: return 14
-        case txType.WITHDRAW_INVESTMENT: return 15
-    }
-} 
+let SupervisorStatus = {
+    NOT_REQUIRED: "NOT_REQUIRED",
+    REQUIRED: "REQUIRED",
+    PROCESSED: "PROCESSED"
+}
 
-function fromGrpcType(type) {
-    switch (type) {
-        case 0:  return txType.WALLET_CREATE
-        case 1:  return txType.ORG_CREATE
-        case 2:  return txType.DEPOSIT
-        case 3:  return txType.APPROVE
-        case 4:  return txType.PENDING_ORG_WITHDRAW
-        case 5:  return txType.PENDING_PROJ_WITHDRAW
-        case 6:  return txType.WITHDRAW
-        case 7:  return txType.INVEST
-        case 8:  return txType.TRANSFER
-        case 9:  return txType.ORG_ADD_MEMBER
-        case 10: return txType.ORG_ADD_PROJECT
-        case 11: return txType.ORG_ACTIVATE
-        case 12: return txType.START_REVENUE_PAYOUT
-        case 13: return txType.REVENUE_PAYOUT
-        case 14: return txType.SHARE_PAYOUT
-        case 15: return txType.WITHDRAW_INVESTMENT
+let functions = {
+    coop: {
+        addWallet: "add_wallet",
+        isWalletActive: "is_wallet_active"
+    },
+    eur: {
+        mint: "mint",
+        allowance: "allowance",
+        balanceOf: "balance_of",
+        burnFrom: "burn",
+        approve: "approve"
+    },
+    proj: {
+        invest: "invest",
+        startRevenueSharesPayout: "start_revenue_shares_payout",
+        payoutRevenueSharesBatch: "payout_revenue_shares"
     }
 }
 
-function functionNameFromGrpcType(grpcTxType) {
-    switch (grpcTxType) {
-        case 0:  return "add_wallet"
-        case 1:  return "add_wallet" // TODO: rethink about merging WALLET_CREATE and ORG_CREATE in one tx type (it is the same fn call after all)
-        case 2:  return "mint"
-        case 3:  return "approve"
-        case 4:  return "unimplemented" // TODO
-        case 5:  return "withdraw"
-        case 6:  return "burn"
-        case 7:  return "invest"
-        case 8:  return "transfer"
-        case 9:  return "add_member"
-        case 10: return "unimplemented" // TODO
-        case 11: return "unimplemented" // TODO: probably not needed since actiavtion is actually add_wallet action
-        case 12: return "start_revenue_shares_payout"
-        case 13: return "payout_revenue_shares"
-        case 14: return "unimplemented" // TODO: rethink how to handle this manually created tx
-        case 15: return "withdraw"
+let txTypeValues = Object.values(TxType)
+let txStateValues = Object.values(TxState)
+let walletTypeValues = Object.values(WalletType)
+let supervisorStatusValues = Object.values(SupervisorStatus)
+
+function fromEvent(event) {
+    let eventHex = util.bigNumberToHex(event)
+    if (events.has(eventHex)) {
+        return events.get(eventHex)
+    } else {
+        throw new Error(`Could not convert event ${event} to transaction type!`)
     }
 }
 
 module.exports = {
-    txType,
-    txState,
+    TxType,
+    TxState,
+    WalletType,
+    SupervisorStatus,
     txTypeValues,
     txStateValues,
-    fromGrpcType,
-    toGrpcType,
-    functionNameFromGrpcType
+    supervisorStatusValues,
+    walletTypeValues,
+    functions,
+    fromEvent
 }

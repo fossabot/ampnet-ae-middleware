@@ -1,0 +1,54 @@
+let client = require('../../ae/client')
+
+let environment = process.env.ENVIRONMENT || 'development';
+let config = require('../../knexfile.js')[environment];
+let knex = require('knex')(config)
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function currentTimeWithDaysOffset(days) {
+    var result = new Date();
+    result.setDate(result.getDate() + days);
+    return result.getTime();
+}
+
+function currentTimeWithSecondsOffset(seconds) {
+    var result = new Date();
+    result.setSeconds(result.getSeconds() + seconds);
+    return result.getTime();
+}
+
+async function waitMined(txHash) {
+    return new Promise(async (resolve) => {
+        client.instance().poll(txHash).then(async _ => {
+            client.instance().getTxInfo(txHash).then(async (info) => {
+                console.log(`\nTransaction ${txHash} mined! Status: ${info.returnType}`)
+                await sleep(1000)
+                resolve()
+            })
+        })
+    })
+}
+
+function enforceAkPrefix(address) {
+    return address.replace("ct_", "ak_")
+}
+
+async function wipeDb() {
+    return new Promise(resolve => {
+        knex.raw('TRUNCATE TABLE transaction CASCADE').then(_ => {
+            resolve()
+        })
+    })
+}
+
+module.exports = { 
+    waitMined, 
+    enforceAkPrefix, 
+    wipeDb, 
+    currentTimeWithDaysOffset, 
+    currentTimeWithSecondsOffset, 
+    sleep 
+}

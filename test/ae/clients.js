@@ -48,7 +48,7 @@ async function init() {
 }
 
 module.exports = {
-    init: init,
+    init,
     coop: function() { return coopClient },
     eur: function() { return eurClient },
     bob: function() { return bobClient },
