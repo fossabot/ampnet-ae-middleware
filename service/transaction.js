@@ -7,6 +7,8 @@ let contracts = require('../ae/contracts')
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 let codec = require('../ae/codec')
 let util = require('../ae/util')
+let err = require('../enums/errors')
+let ErrorType = err.type
 
 let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
 
@@ -215,7 +217,12 @@ async function updateTransactionState(info, poll, type) {
 }
 
 async function performSecurityChecks(data) {
-    let unpackedTx = TxBuilder.unpackTx(data).tx.encodedTx
+    let txMetadata = TxBuilder.unpackTx(data)
+    if (txMetadata.txType != 'signedTx') {
+        throw err.generate(ErrorType.TX_NOT_SIGNED)
+    }
+    let unpackedTx = txMetadata.tx.encodedTx
+
     switch (unpackedTx.txType) {
         case 'contractCallTx':
             await checkTxCaller(unpackedTx.tx.callerId)
@@ -248,8 +255,8 @@ async function checkTxCallee(calleeId) {
     
     let walletActive = await isWalletActive(calleeId)
     if (walletActive) { return }
-
-    throw new Error("Error posting transaction. Target contract not part of AMPnet platform!")
+    
+    throw err.generate(ErrorType.TX_INVALID_CONTRACT_CALLED)
 }
 
 async function checkContractData(tx) {
@@ -257,7 +264,7 @@ async function checkContractData(tx) {
         case contracts.getOrgCompiled().bytecode:
             callData = await codec.decodeDataBySource(contracts.orgSource, "init", tx.callData)
             if (callData.arguments[0].value != contracts.getCoopAddress()) {
-                throw new Error(`Invalid Group create transaction. Invalid master Cooperative contract provided as init parameter!`)
+                throw err.generate(ErrorType.GROUP_INVALID_COOP_ARG)
             }
             break
         case contracts.getProjCompiled().bytecode:
@@ -265,7 +272,7 @@ async function checkContractData(tx) {
             orgAddress = callData.arguments[0].value
             isOrgActive = await isWalletActive(orgAddress)
             if (!isOrgActive) {
-                throw new Error(`Invalid Project create transaction. Invalid Group provided as init parameter.`)
+                throw err.generate(ErrorType.PROJ_INVALID_GROUP_ARG)
             }
             break
         default:

@@ -29,7 +29,7 @@ contract Coop =
         only_owner()
         recursive_wallets_add(wallets)
 
-    entrypoint is_wallet_active(wallet: address) : bool = state.activeWallets[wallet]
+    entrypoint is_wallet_active(wallet: address) : bool = state.activeWallets[wallet = false]
 
     entrypoint owner() : address = state.owner
     
