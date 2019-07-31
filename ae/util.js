@@ -1,8 +1,6 @@
 let { Crypto } = require('@aeternity/aepp-sdk')
 let { BigNumber } = require('bignumber.js')
 
-let client = require('../ae/client')
-
 const tokenFactor = 10000000000000000n
 
 function enforceAkPrefix(address) {

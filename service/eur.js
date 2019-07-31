@@ -131,4 +131,10 @@ async function allowance(owner) {
     return result.decode()
 }
 
-module.exports = { mint, approveWithdraw, burnFrom, balance, invest }
+module.exports = { 
+    mint, 
+    approveWithdraw, 
+    burnFrom, 
+    balance, 
+    invest 
+}

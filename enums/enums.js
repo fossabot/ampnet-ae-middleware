@@ -1,7 +1,6 @@
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
 let util = require('../ae/util')
 
-let txType = {
+let TxType = {
     WALLET_CREATE: "WALLET_CREATE",
     ORG_CREATE: "ORG_CREATE",
     DEPOSIT: "DEPOSIT",
@@ -22,37 +21,30 @@ let txType = {
 }
 
 let events = new Map([
-    [util.blake2b('WalletAdded'), txType.WALLET_CREATE],
-    [util.blake2b('RevenueSharePayout'), txType.SHARE_PAYOUT],
-    [util.blake2b('OrganizationCreated'), txType.ORG_CREATE],
-    [util.blake2b('TokensMinted'), txType.DEPOSIT],
-    [util.blake2b('ApproveSpender'), txType.APPROVE],
-    [util.blake2b('TokensBurned'), txType.WITHDRAW],
-    [util.blake2b('ProjectCreated'), txType.PROJ_CREATE],
-    [util.blake2b('StartRevenuePayout'), txType.START_REVENUE_PAYOUT],
-    [util.blake2b('NewInvestment'), txType.INVEST]
+    [util.blake2b('WalletAdded'), TxType.WALLET_CREATE],
+    [util.blake2b('RevenueSharePayout'), TxType.SHARE_PAYOUT],
+    [util.blake2b('OrganizationCreated'), TxType.ORG_CREATE],
+    [util.blake2b('TokensMinted'), TxType.DEPOSIT],
+    [util.blake2b('ApproveSpender'), TxType.APPROVE],
+    [util.blake2b('TokensBurned'), TxType.WITHDRAW],
+    [util.blake2b('ProjectCreated'), TxType.PROJ_CREATE],
+    [util.blake2b('StartRevenuePayout'), TxType.START_REVENUE_PAYOUT],
+    [util.blake2b('NewInvestment'), TxType.INVEST]
 ])
 
-let txState = {
+let TxState = {
     MINED: "MINED",
     PENDING: "PENDING",
     FAILED: "FAILED"
 }
 
-let walletType = {
+let WalletType = {
     USER: "USER",
     ORGANIZATION: "ORGANIZATION",
     PROJECT: "PROJECT"
 }
 
-let contractType = {
-    COOP: "COOP",
-    EUR: "EUR",
-    ORG: "ORG",
-    PROJ: "PROJ"
-}
-
-let supervisorStatus = {
+let SupervisorStatus = {
     NOT_REQUIRED: "NOT_REQUIRED",
     REQUIRED: "REQUIRED",
     PROCESSED: "PROCESSED"
@@ -77,30 +69,10 @@ let functions = {
     }
 }
 
-let txTypeValues = Object.values(txType)
-let txStateValues = Object.values(txState)
-let walletTypeValues = Object.values(walletType)
-let supervisorStatusValues = Object.values(supervisorStatus)
-
-function fromFunctionCall(fn, callData) {
-    switch(fn) {
-        case "add_wallet": return txType.WALLET_CREATE
-        case "mint": return txType.DEPOSIT
-        case "approve":
-            if (callData.arguments[0].value == config.contracts.eur.owner) {
-                return txType.APPROVE_USER_WITHDRAW
-            } else {
-                return txType.APPROVE_INVESTMENT
-            }
-        case "withdraw": return txType.PENDING_PROJ_WITHDRAW
-        case "burn": return txType.WITHDRAW
-        case "invest": return txType.INVEST
-        case "transfer": return txType.TRANSFER
-        case "add_member": return txType.ORG_ADD_MEMBER
-        case "start_revenue_shares_payout": return txType.START_REVENUE_PAYOUT
-        case "payout_revenue_shares": return txType.SHARE_PAYOUT
-    }  
-}
+let txTypeValues = Object.values(TxType)
+let txStateValues = Object.values(TxState)
+let walletTypeValues = Object.values(WalletType)
+let supervisorStatusValues = Object.values(SupervisorStatus)
 
 function fromEvent(event) {
     let eventHex = util.bigNumberToHex(event)
@@ -112,16 +84,14 @@ function fromEvent(event) {
 }
 
 module.exports = {
-    txType,
-    txState,
+    TxType,
+    TxState,
+    WalletType,
+    SupervisorStatus,
     txTypeValues,
     txStateValues,
-    supervisorStatus,
     supervisorStatusValues,
-    walletType,
-    contractType,
     walletTypeValues,
     functions,
-    fromFunctionCall,
     fromEvent
 }

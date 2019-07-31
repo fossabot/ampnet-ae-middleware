@@ -5,7 +5,7 @@ let client = require('../ae/client')
 let knex = require('knex')(config)
 let contracts = require('../ae/contracts')
 
-let { txState: TxState, txType: TxType, walletType: WalletType, supervisorStatus: SupervisorStatus } = require('../enums/enums')
+let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
 
 async function getWalletOrThrow(txHash) {
     return new Promise(resolve => {
@@ -73,7 +73,11 @@ async function findByWallet(wallet) {
         .then((rows) => {
             if (rows.length == 0) { throw new Error(`No tx records found with wallet ${akWallet}`) }
             if (rows.length > 1) throw new Error(`Incosistent data. Multiple tx records found with wallet ${akWallet}`)
-            resolve(rows[0])
+            record = rows[0]
+            if (record.state != TxState.MINED) {
+                throw new Error(`Wallet create transaction state: ${record.state}`)
+            }
+            resolve(record)
         })
     })
 }

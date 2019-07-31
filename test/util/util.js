@@ -4,7 +4,6 @@ let environment = process.env.ENVIRONMENT || 'development';
 let config = require('../../knexfile.js')[environment];
 let knex = require('knex')(config)
 
-
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -45,20 +44,11 @@ async function wipeDb() {
     })
 }
 
-function assertDbRecord(
-    actualRecord, 
-    expectedHash, 
-    expectedFromWallet, 
-    expectedToWallet, 
-    expectedState, 
-    expectedType,
-    expectedAmount,
-    expectedWallet
-) 
-{
-    
-
-
+module.exports = { 
+    waitMined, 
+    enforceAkPrefix, 
+    wipeDb, 
+    currentTimeWithDaysOffset, 
+    currentTimeWithSecondsOffset, 
+    sleep 
 }
-
-module.exports = { waitMined, enforceAkPrefix, wipeDb, currentTimeWithDaysOffset, currentTimeWithSecondsOffset, sleep }

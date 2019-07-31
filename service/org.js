@@ -1,7 +1,6 @@
 let client = require('../ae/client')
 let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
-let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
 
 async function createOrganization(call, callback) {

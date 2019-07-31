@@ -4,8 +4,6 @@ let grpc = require('grpc')
 
 let config = require('../../env.json')[process.env.NODE_ENV || 'development']
 
-let client
-
 module.exports = {
     start: async function() {
         let protoPath = path.resolve(__dirname, '../../proto/blockchain-service.proto');

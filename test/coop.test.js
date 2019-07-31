@@ -7,18 +7,8 @@ let deployer = require('./ae/deployer')
 let accounts = require('./ae/accounts')
 let clients = require('./ae/clients')
 
-let client = require('../ae/client')
-let codec = require('../ae/codec')
-
 let repo = require('../persistence/repository')
 let util = require('./util/util')
-let aeutil = require('../ae/util')
-let { grpcTxType: GrpcTxType } = require('../enums/enums')
-
-const { TxBuilder: TxBuilder } = require('@aeternity/aepp-sdk')
-
-const { Crypto } = require('@aeternity/aepp-sdk')
-
 
 describe('Main tests', function() {
 
@@ -93,7 +83,7 @@ describe('Main tests', function() {
         
         console.log("Sleep for 10 seconds now")
         await util.sleep(10000)
-
+        
         let records = await repo.getAll()
         console.log(records)
     })
