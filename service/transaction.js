@@ -233,7 +233,7 @@ async function performSecurityChecks(data) {
             await checkContractData(unpackedTx.tx)
             break
         default:
-            throw new Error(`Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
+            throw err.generate(ErrorType.GENERIC_ERROR, `Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
     }
 }
 
@@ -276,14 +276,14 @@ async function checkContractData(tx) {
             }
             break
         default:
-            throw new Error(`Invalid transaction. Groups and Projects can only be created through official Cooperative platform!`)
+            throw err.generate(ErrorType.MALFORMED_CONTRACT_CODE)
     }
 
     if (tx.amount != 0) {
-        throw new Error(`Error posting Contract create transaction. Amount field has to be set to 0 but ${tx.acmount} provided!`)
+        throw err.generate(ErrorType.GENERIC_ERROR, `Error posting Contract create transaction. Amount field has to be set to 0 but ${tx.amount} provided!`)
     }
     if (tx.deposit != 0) {
-        throw new Error(`Error posting Contract create transaction. Deposit field has to be set to 0 but ${tx.deposit} provided!`)
+        throw err.generate(ErrorType.GENERIC_ERROR, `Error posting Contract create transaction. Deposit field has to be set to 0 but ${tx.deposit} provided!`)
     }
 }
 

@@ -9,6 +9,7 @@ let clients = require('./ae/clients')
 
 let repo = require('../persistence/repository')
 let util = require('./util/util')
+let db = require('./util/db')
 
 describe('Main tests', function() {
 
@@ -20,7 +21,7 @@ describe('Main tests', function() {
 
     beforeEach(async() => {
         await deployer.deploy()
-        await util.wipeDb()
+        await db.truncate()
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {

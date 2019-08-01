@@ -8,7 +8,7 @@ exports.up = function(knex, Promise) {
         table.string('to_wallet');
         table.string('input', 400);
         table.enu('state', enums.txStateValues).notNullable();
-        table.enu('supervisor_status', enums.supervisorStatusValues).notNullable();
+        table.enu('supervisor_status', enums.supervisorStatusValues);
         table.enu('type', enums.txTypeValues);
         table.bigInteger('amount');
         table.string('wallet');

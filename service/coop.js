@@ -4,6 +4,8 @@ let contracts = require('../ae/contracts')
 let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
+let err = require('../enums/errors')
+let ErrorType = err.type
 
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
@@ -30,7 +32,13 @@ async function addWallet(call, callback) {
         callback(null, { tx: tx })
     } catch (error) {
         console.log(`Error generating addWallet transaction: ${error}`)
-        callback(error, null)
+        if (typeof error.response !== 'undefined') {
+            callback(err.generate(ErrorType.AEPP_SDK_ERROR, error.response.data.reason), null)
+        } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
+            calllback(error, null)
+        } else {
+            callback(err.generate(ErrorType.GENERIC_ERROR), null)
+        }
     }
 }
 
@@ -50,7 +58,13 @@ async function walletActive(call, callback) {
         callback(null, { active: resultDecoded })
     } catch (error) {
         console.log(`Error fetching wallet active status: ${error}`)
-        callback(error, null)
+        if (typeof error.response !== 'undefined') {
+            callback(err.generate(ErrorType.AEPP_SDK_ERROR, error.response.data.reason), null)
+        } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
+            callback(error, null)
+        } else {
+            callback(err.generate(ErrorType.GENERIC_ERROR), null)
+        }
     }
 }
 
