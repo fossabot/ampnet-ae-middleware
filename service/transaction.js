@@ -7,7 +7,7 @@ let contracts = require('../ae/contracts')
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 let codec = require('../ae/codec')
 let util = require('../ae/util')
-let err = require('../enums/errors')
+let err = require('../error/errors')
 let ErrorType = err.type
 
 let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
@@ -21,9 +21,9 @@ async function postTransaction(call, callback) {
         processTransaction(result.hash)
         console.log(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })
-    } catch(err) {
-        console.log("Error while posting transaction", err)
-        callback(err, null)
+    } catch(error) {
+        console.log("Error while posting transaction", error)
+        err.handle(error, callback)
     }
 }
 
@@ -34,7 +34,7 @@ async function processTransaction(hash) {
     if (info.returnType == 'ok') {
         handleTransactionMined(info, poll)
     } else {
-        handleTransactionFailed(info)
+        handleTransactionFailed(info, hash)
     }
 }
 
@@ -48,8 +48,12 @@ async function handleTransactionMined(info, poll) {
         }
 }
 
-async function handleTransactionFailed(txInfo) {
-
+async function handleTransactionFailed(txInfo, hash) {
+    decodedError = await err.decode(txInfo)
+    repo.update(hash, {
+        state: TxState.FAILED,
+        error_message: decodedError
+    })
 }
 
 async function handleSupervisorAction(tx) {
@@ -247,7 +251,7 @@ async function checkTxCaller(callerId) {
     }
 
     // if caller not found in repo or caller's wallet still not mined exception is thrown
-    return repo.findByWallet(callerId)
+    return repo.findByWalletOrThrow(callerId)
 }
 
 async function checkTxCallee(calleeId) {

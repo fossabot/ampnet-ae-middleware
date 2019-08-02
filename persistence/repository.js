@@ -2,12 +2,12 @@ let environment = process.env.ENVIRONMENT || 'development';
 let config = require('../knexfile.js')[environment];
 let util = require('../ae/util')
 let knex = require('knex')(config)
-let err = require('../enums/errors')
+let err = require('../error/errors')
 let ErrorType = err.type
 
-let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
+let { TxState, TxType, WalletType } = require('../enums/enums')
 
-async function getWalletOrThrow(txHash) {
+async function findByHashOrThrow(txHash) {
     return new Promise((resolve, reject) => {
         knex('transaction')
         .where({ hash: txHash })
@@ -37,39 +37,7 @@ async function getWalletOrThrow(txHash) {
     })
 }
 
-async function walletExists(wallet) {
-    return new Promise(resolve => {
-        knex('transaction')
-        .where({ wallet: wallet })
-        .then(rows => {
-            resolve(rows.length > 0)
-        })
-    })
-}
-
-async function getRecord(txHash) {
-    return new Promise(resolve => {
-        knex('transaction')
-        .where({ hash: txHash })
-        .then(rows => {
-            if (rows.length == 0) { throw new Error(`No record found for given txHash: ${txHash}`)}
-            resolve(rows[0])
-        })
-    })
-}
-
-async function checkWalletOrThrow(wallet) {
-    let akWallet = util.enforceAkPrefix(wallet)
-    knex('transaction')
-        .where({ wallet: akWallet })
-        .then(rows => {
-            if (rows.length == 0) { throw new Error(`No tx records found with wallet ${akWallet}`) }
-            if (rows.length > 1) throw new Error(`Incosistent data. Multiple tx records found with wallet ${akWallet}`)
-            console.log(rows[0])
-        })
-}
-
-async function findByWallet(wallet) {
+async function findByWalletOrThrow(wallet) {
     let akWallet = util.enforceAkPrefix(wallet)
     return new Promise( (resolve, reject) => {
         knex('transaction')
@@ -89,6 +57,41 @@ async function findByWallet(wallet) {
                 }
             }
         })
+    })
+}
+
+async function getWalletTypeOrThrow(address) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where('type', 'in', [TxType.ORG_CREATE, TxType.PROJ_CREATE])
+            .andWhere({to_wallet: address})
+            .then(rows => {
+                switch (rows.length) {
+                    case 0:
+                        resolve(WalletType.USER)
+                        break
+                    case 1:
+                        if(rows[0].type == TxType.ORG_CREATE) resolve(WalletType.ORGANIZATION)
+                        else resolve(WalletType.PROJECT)
+                        break
+                    default:
+                        throw new Error("Expected at max 1 row for searching org/proj creation with given wallet.")
+                }
+            })
+    })
+}
+
+async function saveHash(hash) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .insert({
+                hash: hash,
+                state: TxState.PENDING,
+                created_at: new Date()
+            })
+            .then(_ => {
+                resolve()
+            })
     })
 }
 
@@ -120,41 +123,6 @@ async function update(hash, data) {
     })
 }
 
-async function saveHash(hash) {
-    return new Promise(resolve => {
-        knex('transaction')
-            .insert({
-                hash: hash,
-                state: TxState.PENDING,
-                created_at: new Date()
-            })
-            .then(_ => {
-                resolve()
-            })
-    })
-}
-
-async function getWalletTypeOrThrow(address) {
-    return new Promise(resolve => {
-        knex('transaction')
-            .where('type', 'in', [TxType.ORG_CREATE, TxType.PROJ_CREATE])
-            .andWhere({to_wallet: address})
-            .then(rows => {
-                switch (rows.length) {
-                    case 0:
-                        resolve(WalletType.USER)
-                        break
-                    case 1:
-                        if(rows[0].type == TxType.ORG_CREATE) resolve(WalletType.ORGANIZATION)
-                        else resolve(WalletType.PROJECT)
-                        break
-                    default:
-                        throw new Error("Expected at max 1 row for searching org/proj creation with given wallet.")
-                }
-            })
-    })
-}
-
 async function getAll() {
     return new Promise( resolve => {
         knex('transaction')
@@ -165,14 +133,11 @@ async function getAll() {
 }
 
 module.exports = {
-    getWalletOrThrow,
-    checkWalletOrThrow,
-    findByWallet,
+    findByHashOrThrow,
+    findByWalletOrThrow,
+    getWalletTypeOrThrow,
     saveTransaction,
     getAll,
-    getRecord,
-    walletExists,
     update,
     saveHash,
-    getWalletTypeOrThrow
 }

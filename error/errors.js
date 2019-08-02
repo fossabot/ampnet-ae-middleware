@@ -1,4 +1,6 @@
+let { Crypto } = require('@aeternity/aepp-sdk')
 let grpcErrors = require('grpc-errors')
+let client = require('../ae/client')
 
 let type = {
     TX_NOT_SIGNED: "01",
@@ -45,17 +47,23 @@ function generate(errorType, message = DefaultMessages.get(errorType)) {
     }
 }
 
-module.exports = { generate, type }
+function handle(error, callback) {
+    if (typeof error.response !== 'undefined') {
+        callback(generate(type.AEPP_SDK_ERROR, error.response.data.reason), null)
+    } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
+        callback(error, null)
+    } else {
+        callback(err.generate(ErrorType.GENERIC_ERROR), null)
+    }
+}
 
-/**
- * getBalance
- * addWallet
- * generateAddOrganizationTx
- * generateAddOrganizationProjectTx
- * postVaultTx
- * activateOrg
- * generateInvestmentTx
- * generateConfirmInvestmentTx
- * generateMintTx
- * generateBurnTx
- */
+async function decode(result) {
+    error = Buffer.from(result.returnValue).toString()
+    if (Crypto.isBase64(error.slice(3))) {
+        return Buffer.from(error.slice(3), 'base64').toString().replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '')
+    } else {
+        return client.instance().contractDecodeDataAPI('string', error).replace(/[^a-zA-Z0-9\(\)!\?\., ]/g, '')
+    }
+}
+
+module.exports = { generate, type, handle, decode }

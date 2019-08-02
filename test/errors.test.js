@@ -1,5 +1,5 @@
-const chai = require('chai');
-const assert = chai.assert;
+let chai = require('chai');
+let assert = chai.assert;
 
 let grpcClient = require('./grpc/client')
 let deployer = require('./ae/deployer')
@@ -15,7 +15,7 @@ let contracts = require('../ae/contracts')
 let repo = require('../persistence/repository')
 let { TxType, TxState } = require('../enums/enums')
 
-let err = require('../enums/errors')
+let err = require('../error/errors')
 let ErrorType = err.type
 
 describe('Error handling tests', function() {
@@ -216,6 +216,60 @@ describe('Error handling tests', function() {
         errResponse = await grpcClient.isWalletActive(investHash)
         errResponseParsed = util.parseError(errResponse.details)
         assert.strictEqual(errResponseParsed.message, "Given hash does not represent wallet creation transaction!")
+    })
+
+    it('Transaction that fails on Contract level should be updated correctly in its db entry', async () => {
+        addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
+        addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
+        await util.waitMined(addBobWalletTxHash)
+
+        // For example, Bob tries to approve Alice's wallet but only admin can do such a thing, tx should fail
+        callData = await codec.coop.encodeAddWallet(accounts.alice.publicKey)
+        tx = await client.instance().contractCallTx({
+            callerId : accounts.bob.publicKey,
+            contractId : contracts.getCoopAddress(),
+            abiVersion : 1,
+            amount : 0,
+            gas : 10000,
+            callData : callData
+        })
+        txSigned = await clients.bob().signTransaction(tx)
+        faultyTxHash = await grpcClient.postTransaction(txSigned)
+
+        // Sleep for 5 seconds
+        await util.sleep(5000)
+        transactions = await repo.getAll()
+        console.log(transactions)
+    })
+
+    it('Transaction that fails on Protocol level should be update correctly in its db entry', async () => {
+        addEmptyWalletTx = await grpcClient.generateAddWalletTx(accounts.empty.publicKey)
+        addEmptyWalletTxSigned = await clients.coop().signTransaction(addEmptyWalletTx)
+        addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned)
+        await util.waitMined(addEmptyWalletTxHash)
+
+        emptyWalletBalance = await client.instance().balance(accounts.empty.publicKey)
+        console.log('emptyWalletBalance', emptyWalletBalance)
+        
+        callData = await codec.org.encodeCreateOrganization()
+        txResult = await client.instance().contractCreateTx({
+            ownerId: accounts.empty.publicKey,
+            code: contracts.getOrgCompiled().bytecode,
+            vmVersion: 3,
+            abiVersion: 1,
+            deposit: 0,
+            amount: 0,
+            gas: 0,
+            callData: callData
+        })
+        txSigned = await clients.empty().signTransaction(txResult.tx)
+        faultyHash = await grpcClient.postTransaction(txSigned)
+
+        // sleep 5 seconds
+        await util.sleep(5000)
+        records = await repo.getAll()
+        console.log("records", records)
     })
 
 

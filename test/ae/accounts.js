@@ -1,3 +1,5 @@
+let { Crypto } = require('@aeternity/aepp-sdk')
+
 module.exports = {
     coop: {
         publicKey: "ak_fUq2NesPXcYZ1CcqBcGC3StpdnQw3iVxMA3YSeCNAwfN4myQk",
@@ -14,5 +16,6 @@ module.exports = {
     alice: {
         publicKey: "ak_RYkcTuYcyxQ6fWZsL2G3Kj3K5WCRUEXsi76bPUNkEsoHc52Wp",
         secretKey: "58bd39ded1e3907f0b9c1fbaa4456493519995d524d168e0b04e86400f4aa13937bcec56026494dcf9b19061559255d78deea3281ac649ca307ead34346fa621"
-    }
+    },
+    empty: Crypto.generateKeyPair()
 }

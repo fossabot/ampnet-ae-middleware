@@ -4,8 +4,7 @@ let contracts = require('../ae/contracts')
 let functions = require('../enums/enums').functions
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
-let err = require('../enums/errors')
-let ErrorType = err.type
+let err = require('../error/errors')
 
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
@@ -32,20 +31,14 @@ async function addWallet(call, callback) {
         callback(null, { tx: tx })
     } catch (error) {
         console.log(`Error generating addWallet transaction: ${error}`)
-        if (typeof error.response !== 'undefined') {
-            callback(err.generate(ErrorType.AEPP_SDK_ERROR, error.response.data.reason), null)
-        } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
-            calllback(error, null)
-        } else {
-            callback(err.generate(ErrorType.GENERIC_ERROR), null)
-        }
+        err.handle(error, callback)
     }
 }
 
 async function walletActive(call, callback) {
     console.log(`\nReceived request to check is wallet with txHash ${call.request.walletTxHash} active.`)
     try {
-        let tx = await repo.getWalletOrThrow(call.request.walletTxHash)
+        let tx = await repo.findByHashOrThrow(call.request.walletTxHash)
         console.log(`Address represented by given hash: ${tx.wallet}\n`)
         let result = await client.instance().contractCallStatic(
             contracts.coopSource, 
@@ -58,13 +51,7 @@ async function walletActive(call, callback) {
         callback(null, { active: resultDecoded })
     } catch (error) {
         console.log(`Error fetching wallet active status: ${error}`)
-        if (typeof error.response !== 'undefined') {
-            callback(err.generate(ErrorType.AEPP_SDK_ERROR, error.response.data.reason), null)
-        } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
-            callback(error, null)
-        } else {
-            callback(err.generate(ErrorType.GENERIC_ERROR), null)
-        }
+        err.handle(error, callback)
     }
 }
 

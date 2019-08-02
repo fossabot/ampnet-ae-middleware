@@ -15,6 +15,7 @@ exports.up = function(knex, Promise) {
         table.enu('wallet_type', enums.walletTypeValues);
         table.timestamp('created_at', { useTz: true }).notNullable();
         table.timestamp('processed_at', { useTz: true });
+        table.string('error_message')
       });
 };
 

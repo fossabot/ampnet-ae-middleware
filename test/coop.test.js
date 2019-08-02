@@ -1,5 +1,5 @@
-const chai = require('chai');
-const assert = chai.assert;
+let chai = require('chai');
+let assert = chai.assert;
 
 let grpcServer = require('../grpc/server')
 let grpcClient = require('./grpc/client')
@@ -88,22 +88,6 @@ describe('Main tests', function() {
         let records = await repo.getAll()
         console.log(records)
     })
-
-    // it('Should fail if tx type is wrong', async () => {
-    
-    // })
-
-    // it('Should fail if caller not registered on platform', async () => {
-
-    // })
-
-    // it('Should fail if callee not one of ampnet smart contracts', async () => {
-
-    // })
-
-    // it('Should fail if caller tries to generate some transaction but his wallet not yet active (not mined)', async () => {
-
-    // })
 
     after(async() => {
         await grpcServer.stop()
