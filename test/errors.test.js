@@ -12,7 +12,6 @@ let grpcServer = require('../grpc/server')
 let client = require('../ae/client')
 let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
-let repo = require('../persistence/repository')
 let { TxType, TxState } = require('../enums/enums')
 
 let err = require('../error/errors')
@@ -77,9 +76,7 @@ describe('Error handling tests', function() {
             gas: 50000,
             callData: callData
         })
-        console.log("badTx", badTx.tx)
         badTxSigned = await clients.bob().signTransaction(badTx.tx)
-        console.log("badTxSigned", badTxSigned)
         errResponse = await grpcClient.postTransaction(badTxSigned)
         assert.strictEqual(errResponse.details, err.generate(ErrorType.GROUP_INVALID_COOP_ARG).message)
     }) 
@@ -236,11 +233,12 @@ describe('Error handling tests', function() {
         })
         txSigned = await clients.bob().signTransaction(tx)
         faultyTxHash = await grpcClient.postTransaction(txSigned)
+        await util.waitMined(faultyHash)
 
-        // Sleep for 5 seconds
-        await util.sleep(5000)
-        transactions = await repo.getAll()
-        console.log(transactions)
+        // Sleep for 1 second to wait for updated tx state in database
+        await util.sleep(1000)
+        faultyTxRecord = await db.getBy({hash: faultyTxHash})
+        console.log("faulty record", faultyTxRecord)
     })
 
     it('Transaction that fails on Protocol level should be update correctly in its db entry', async () => {
@@ -265,16 +263,19 @@ describe('Error handling tests', function() {
         })
         txSigned = await clients.empty().signTransaction(txResult.tx)
         faultyHash = await grpcClient.postTransaction(txSigned)
+        await util.waitMined(faultyHash)
 
-        // sleep 5 seconds
-        await util.sleep(5000)
-        records = await repo.getAll()
-        console.log("records", records)
+        // Sleep for 1 second to wait for updated tx state in database
+        await util.sleep(1000)
+
+        faultyTxRecord = await db.getBy({hash: faultyHash})
+        console.log("faultyTxRecord", faultyTxRecord)
     })
 
 
     after(async() => {
         await grpcServer.stop()
+        await db.destroy()
     })
 
 })

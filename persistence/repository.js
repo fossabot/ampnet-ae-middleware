@@ -123,13 +123,8 @@ async function update(hash, data) {
     })
 }
 
-async function getAll() {
-    return new Promise( resolve => {
-        knex('transaction')
-            .then(data => {
-                resolve(data)
-            })
-    })
+async function destroy() {
+    return knex.destroy()
 }
 
 module.exports = {
@@ -137,7 +132,7 @@ module.exports = {
     findByWalletOrThrow,
     getWalletTypeOrThrow,
     saveTransaction,
-    getAll,
     update,
     saveHash,
+    destroy
 }

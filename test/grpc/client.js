@@ -102,7 +102,7 @@ module.exports = {
                 if (err != null) {
                     resolve(err)
                 } else {
-                    resolve(result.balance)
+                    resolve(Number(result.balance))
                 }
             })
         })

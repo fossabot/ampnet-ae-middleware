@@ -20,7 +20,26 @@ async function insert(data) {
     })
 }
 
+async function getAll() { return getBy({}) }
+
+async function getBy(constraints) {
+    return new Promise( resolve => {
+        knex('transaction')
+            .where(constraints)
+            .then(rows => {
+                resolve(rows)
+            })
+    })
+}
+
+async function destroy() {
+    return knex.destroy()
+}
+
 module.exports = {
     insert,
-    truncate
+    truncate,
+    destroy,
+    getAll,
+    getBy
 }
