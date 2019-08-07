@@ -4,7 +4,7 @@ let knex = require('knex')(config)
 
 async function truncate() {
     return new Promise(resolve => {
-        knex.raw('TRUNCATE TABLE transaction CASCADE').then(_ => {
+        knex.raw('TRUNCATE TABLE transaction').then(_ => {
             resolve()
         })
     })
@@ -32,14 +32,9 @@ async function getBy(constraints) {
     })
 }
 
-async function destroy() {
-    return knex.destroy()
-}
-
 module.exports = {
     insert,
     truncate,
-    destroy,
     getAll,
     getBy
 }

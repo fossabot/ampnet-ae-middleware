@@ -123,16 +123,11 @@ async function update(hash, data) {
     })
 }
 
-async function destroy() {
-    return knex.destroy()
-}
-
 module.exports = {
     findByHashOrThrow,
     findByWalletOrThrow,
     getWalletTypeOrThrow,
     saveTransaction,
     update,
-    saveHash,
-    destroy
+    saveHash
 }

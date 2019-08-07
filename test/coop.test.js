@@ -11,7 +11,6 @@ let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
-
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 
 describe('Main tests', function() {
@@ -218,7 +217,6 @@ describe('Main tests', function() {
 
     after(async() => {
         await grpcServer.stop()
-        await db.destroy()
     })
 
 })

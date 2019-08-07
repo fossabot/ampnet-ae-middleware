@@ -11,8 +11,9 @@ module.exports = {
       database: 'blockchain',
     },
     pool: {
-      min: 2,
+      min: 0,
       max: 10,
+      idleTimeoutMillis: 500
     },
     migrations: {
       directory: path.join(__dirname, 'db', 'migrations'),
