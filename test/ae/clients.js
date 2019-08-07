@@ -6,6 +6,7 @@ let coopClient
 let eurClient
 let bobClient
 let aliceClient
+let emptyClient
 
 async function init() {
     let networkId = 'ae_devnet'
@@ -45,6 +46,15 @@ async function init() {
         networkId: networkId,
         compilerUrl: config.compiler.host
     })
+
+    emptyClient = await Ae({
+        url: config.node.host,
+        internalUrl: config.node.internalHost,
+        keypair: accounts.empty,
+        nativeMode: true,
+        networkId: networkId,
+        compilerUrl: config.compiler.host
+    })
 }
 
 module.exports = {
@@ -52,5 +62,6 @@ module.exports = {
     coop: function() { return coopClient },
     eur: function() { return eurClient },
     bob: function() { return bobClient },
-    alice: function() { return aliceClient }
+    alice: function() { return aliceClient },
+    empty: function() { return emptyClient }
 }

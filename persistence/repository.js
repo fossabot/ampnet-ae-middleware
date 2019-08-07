@@ -1,84 +1,97 @@
 let environment = process.env.ENVIRONMENT || 'development';
 let config = require('../knexfile.js')[environment];
 let util = require('../ae/util')
-let client = require('../ae/client')
 let knex = require('knex')(config)
-let contracts = require('../ae/contracts')
+let err = require('../error/errors')
+let ErrorType = err.type
 
-let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
+let { TxState, TxType, WalletType } = require('../enums/enums')
 
-async function getWalletOrThrow(txHash) {
-    return new Promise(resolve => {
+async function findByHashOrThrow(txHash) {
+    return new Promise((resolve, reject) => {
         knex('transaction')
         .where({ hash: txHash })
-        .then( rows => {
-            if (rows.length == 0) { throw new Error (`No wallet found for given txHash: ${txHash}`) }
-            let record = rows[0]
-            switch (record.type) {
-                case TxType.WALLET_CREATE:
-                    switch (record.state) {
-                        case TxState.MINED:
-                            resolve(record)
-                            break
-                        case TxState.PENDING:
-                            throw new Error(`Wallet creation transaction with txHash ${txHash} not yet mined!`)
-                        case TxState.FAILED:
-                            throw new Error(`Wallet creation transaction with txHash ${txHash} failed! Create wallet again.`)
-                    }
-                    break
-                default:
-                    throw new Error(`Given txHash does not represent wallet creation transaction. Aborting.`)
+        .then(rows => {
+            if (rows.length == 0) { reject(err.generate(ErrorType.WALLET_NOT_FOUND)) }
+            else {
+                let record = rows[0]
+                switch (record.type) {
+                    case TxType.WALLET_CREATE:
+                        switch (record.state) {
+                            case TxState.MINED:
+                                resolve(record)
+                                break
+                            case TxState.PENDING:
+                                reject(err.generate(ErrorType.WALLET_CREATION_PENDING))
+                                break
+                            case TxState.FAILED:
+                                reject(err.generate(ErrorType.WALLET_CREATION_FAILED))
+                        }
+                        break
+                    default:
+                        reject(err.generate(ErrorType.GENERIC_ERROR, "Given hash does not represent wallet creation transaction!"))
+                }
             }
+
         })
     })
 }
 
-async function walletExists(wallet) {
-    return new Promise(resolve => {
-        knex('transaction')
-        .where({ wallet: wallet })
-        .then(rows => {
-            resolve(rows.length > 0)
-        })
-    })
-}
-
-async function getRecord(txHash) {
-    return new Promise(resolve => {
-        knex('transaction')
-        .where({ hash: txHash })
-        .then(rows => {
-            if (rows.length == 0) { throw new Error(`No record found for given txHash: ${txHash}`)}
-            resolve(rows[0])
-        })
-    })
-}
-
-async function checkWalletOrThrow(wallet) {
+async function findByWalletOrThrow(wallet) {
     let akWallet = util.enforceAkPrefix(wallet)
-    knex('transaction')
-        .where({ wallet: akWallet })
-        .then(rows => {
-            if (rows.length == 0) { throw new Error(`No tx records found with wallet ${akWallet}`) }
-            if (rows.length > 1) throw new Error(`Incosistent data. Multiple tx records found with wallet ${akWallet}`)
-            console.log(rows[0])
-        })
-}
-
-async function findByWallet(wallet) {
-    let akWallet = util.enforceAkPrefix(wallet)
-    return new Promise( resolve => {
+    return new Promise( (resolve, reject) => {
         knex('transaction')
         .where({ wallet: akWallet })
         .then((rows) => {
-            if (rows.length == 0) { throw new Error(`No tx records found with wallet ${akWallet}`) }
-            if (rows.length > 1) throw new Error(`Incosistent data. Multiple tx records found with wallet ${akWallet}`)
-            record = rows[0]
-            if (record.state != TxState.MINED) {
-                throw new Error(`Wallet create transaction state: ${record.state}`)
+            if (rows.length == 0) { reject(err.generate(ErrorType.WALLET_NOT_FOUND)) }
+            else if (rows.length > 1) { reject(err.generate(ErrorType.GENERIC_ERROR, `Incosistent data. Multiple tx records found with wallet ${akWallet}`)) }
+            else {
+                record = rows[0]
+                switch (record.state) {
+                    case TxState.MINED:
+                        resolve(record)
+                    case TxState.PENDING:
+                        reject(err.generate(ErrorType.WALLET_CREATION_PENDING))
+                    case TxState.FAILED:
+                        reject(err.generate(ErrorType.WALLET_CREATION_FAILED))
+                }
             }
-            resolve(record)
         })
+    })
+}
+
+async function getWalletTypeOrThrow(address) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where('type', 'in', [TxType.ORG_CREATE, TxType.PROJ_CREATE])
+            .andWhere({to_wallet: address})
+            .then(rows => {
+                switch (rows.length) {
+                    case 0:
+                        resolve(WalletType.USER)
+                        break
+                    case 1:
+                        if(rows[0].type == TxType.ORG_CREATE) resolve(WalletType.ORGANIZATION)
+                        else resolve(WalletType.PROJECT)
+                        break
+                    default:
+                        throw new Error("Expected at max 1 row for searching org/proj creation with given wallet.")
+                }
+            })
+    })
+}
+
+async function saveHash(hash) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .insert({
+                hash: hash,
+                state: TxState.PENDING,
+                created_at: new Date()
+            })
+            .then(_ => {
+                resolve()
+            })
     })
 }
 
@@ -110,118 +123,11 @@ async function update(hash, data) {
     })
 }
 
-async function saveHash(hash) {
-    return new Promise(resolve => {
-        knex('transaction')
-            .insert({
-                hash: hash,
-                state: TxState.PENDING,
-                supervisor_status: SupervisorStatus.NOT_REQUIRED, // TODO: rethink about this
-                created_at: new Date()
-            })
-            .then(_ => {
-                resolve()
-            })
-    })
-}
-
-async function getWalletTypeOrThrow(address) {
-    return new Promise(resolve => {
-        knex('transaction')
-            .where('type', 'in', [TxType.ORG_CREATE, TxType.PROJ_CREATE])
-            .andWhere({to_wallet: address})
-            .then(rows => {
-                switch (rows.length) {
-                    case 0:
-                        resolve(WalletType.USER)
-                        break
-                    case 1:
-                        if(rows[0].type == TxType.ORG_CREATE) resolve(WalletType.ORGANIZATION)
-                        else resolve(WalletType.PROJECT)
-                        break
-                    default:
-                        throw new Error("Expected at max 1 row for searching org/proj creation with given wallet.")
-                }
-            })
-    })
-}
-
-async function getAll() {
-    return new Promise( resolve => {
-        knex('transaction')
-            .then(data => {
-                resolve(data)
-            })
-    })
-}
-
-async function updateTransactionState(hash, info, txInfo) {
-    let newStateJson = await getUpdatedStateJson(hash, info, txInfo)
-    return new Promise(resolve => {
-        knex('transaction')
-            .where({ hash: hash })
-            .update(newStateJson)
-            .then(result => {
-                resolve()
-            })
-    })
-}
-
-async function getUpdatedStateJson(hash, info, txInfo) {
-    let newState
-    if (info.returnType == "ok") {
-        newState = TxState.MINED
-    } else if (info.returnType == "revert" || info.returnType == "error") {
-        newState = TxState.FAILED
-    } else {
-        throw new Error(`Invalid transaction update state. Expected ok/revert state but got ${info.returnType} for transaction with hash ${hash}`)
-    }
-
-    switch (txInfo.type) {
-        case TxType.WALLET_CREATE:
-            let wallet = txInfo.callData.arguments[0].value
-            let bytecodeResponse = await client.instance().getContractByteCode(util.enforceCtPrefix(wallet)).catch(error => { })
-            walletType = WalletType.USER
-            if (typeof bytecodeResponse !== 'undefined') {
-                switch (bytecodeResponse.bytecode) {
-                    case contracts.getOrgCompiled().bytecode:
-                        walletType = WalletType.ORGANIZATION
-                        break
-                    case contracts.getProjCompiled().bytecode:
-                        walletType = WalletType.PROJECT
-                        break
-                    default:
-                        throw new Error(`Wallet with address ${wallet} represents unknown Contract!`)
-                }
-            }
-
-            let alreadyExists = await walletExists(wallet)
-            if (!alreadyExists) {
-                return {
-                    state: newState,
-                    processed_at: new Date(),
-                    wallet: wallet,
-                    wallet_type: walletType
-                }
-            }
-        default:
-            return {
-                state: newState,
-                processed_at: new Date()
-            }
-    }
-}
-
 module.exports = {
-    getWalletOrThrow,
-    checkWalletOrThrow,
-    findByWallet,
+    findByHashOrThrow,
+    findByWalletOrThrow,
+    getWalletTypeOrThrow,
     saveTransaction,
-    getAll,
-    updateTransactionState,
-    getRecord,
-    walletExists,
     update,
-    saveHash,
-    getWalletTypeOrThrow
+    saveHash
 }

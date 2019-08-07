@@ -1,9 +1,5 @@
 let client = require('../../ae/client')
 
-let environment = process.env.ENVIRONMENT || 'development';
-let config = require('../../knexfile.js')[environment];
-let knex = require('knex')(config)
-
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -36,19 +32,21 @@ function enforceAkPrefix(address) {
     return address.replace("ct_", "ak_")
 }
 
-async function wipeDb() {
-    return new Promise(resolve => {
-        knex.raw('TRUNCATE TABLE transaction CASCADE').then(_ => {
-            resolve()
-        })
-    })
+function parseError(err) {
+    let parts = err.split('>')
+    let code = Number(parts[0].trim())
+    let message = parts[1].trim()
+    return {
+        code: code,
+        message: message
+    }
 }
 
 module.exports = { 
     waitMined, 
     enforceAkPrefix, 
-    wipeDb, 
     currentTimeWithDaysOffset, 
     currentTimeWithSecondsOffset, 
-    sleep 
+    sleep,
+    parseError
 }

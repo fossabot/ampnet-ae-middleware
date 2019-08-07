@@ -12,18 +12,6 @@ message GenerateAddWalletTxRequest {
     string wallet = 1;
 }
 
-message OrganizationExistsRequest {
-    string organizationTxHash = 1;
-}
-
-message OrganizationExistsResponse {
-    bool exists = 1;
-}
-
-message GetOrganizationsResponse {
-    repeated string organizations = 1;
-}
-
 message WalletActiveRequest {
     string walletTxHash = 1;
 }
@@ -63,137 +51,16 @@ message GenerateInvestTxRequest {
     string amount = 3;
 }
 
-message GenerateCancelPendingInvestmentTxRequest {
-    string fromTxHash = 1;
-    string projectTxHash = 2;
-}
-
-message GenerateTransferTxRequest {
-    string fromTxHash = 1;
-    string toTxHash = 2;
-    string amount = 3;
-}
-
-
 ///////// Organization contract //////////
 
-message ActivateOrganizationRequest {
-    string organizationTxHash = 1;
-}
-
-message GenerateWithdrawOrganizationFundsTxRequest {
-    string fromTxHash = 1;
-    string organizationTxHash = 2;
-    string amount = 3;
-}
-
-message GenerateAddMemberTxRequest {
-    string fromTxHash = 1;
-    string organizationTxHash = 2;
-    string memberTxHash = 3;
-}
-
-message OrganizationVerifiedRequest {
-    string organizationTxHash = 1;
-}
-
-message OrganizationVerifiedResponse {
-    bool verified = 1;
-}
-
-message OrganizationProjectsRequest {
-    string organizationTxHash = 1;
-}
-
-message OrganizationProjectsResponse {
-    repeated string projects = 1;
-}
-
-message OrganizationMembersRequest {
-    string organizationTxHash = 1;
-}
-
-message OrganizationMembersResponse {
-    repeated string members = 1;
-}
 
 
 ///////// Project contract ///////////////
-
-message GenerateConfirmInvestmentTxRequest {
-    string fromTxHash = 1;
-    string projectTxHash = 2;
-}
 
 message GenerateStartRevenueSharesPayoutTxRequest {
     string fromTxHash = 1;
     string projectTxHash = 2;
     string revenue = 3;
-}
-
-message GeneratePayoutRevenueSharesTxRequest {
-    string fromTxHash = 1;
-    string projectTxHash = 2;
-}
-
-message GenerateWithdrawInvestmentTxRequest {
-    string fromTxHash = 1;
-    string projectTxHash = 2;
-}
-
-message GenerateWithdrawProjectFundsTx {
-    string fromTxHash = 1;
-    string projectTxHash = 2;
-    string amount = 3;
-}
-
-message ProjectMaxInvestmentPerUserRequest {
-    string projectTxHash = 1;
-}
-
-message ProjectMaxInvestmentPerUserResponse {
-    string amount = 1;
-}
-
-message ProjectMinInvestmentPerUserRequest {
-    string projectTxHash = 1;
-}
-
-message ProjectMinInvestmentPerUserResponse {
-    string amount = 1;
-}
-
-message ProjectInvestmentCapRequest {
-    string projectTxHash = 1;
-}
-
-message ProjectInvestmentCapResponse {
-    string amount = 1;
-}
-
-message ProjectCurrentTotalInvestmentRequest {
-    string projectTxHash = 1;
-}
-
-message ProjectCurrentTotalInvestmentResponse {
-    string amount = 1;
-}
-
-message ProjectTotalInvestmentForUserRequest {
-    string projectTxHash = 1;
-    string userTxHash = 2;
-}
-
-message ProjectTotalInvestmentForUserResponse {
-    string amount = 1;
-}
-
-message ProjectCompletelyFundedRequest {
-    string projectTxHash = 1;
-}
-
-message ProjectCompletelyFundedResponse {
-    bool funded = 1;
 }
 
 
@@ -244,9 +111,7 @@ service BlockchainService {
     // Cooperative
 
     rpc generateAddWalletTx(GenerateAddWalletTxRequest) returns (RawTxResponse);
-    rpc getOrganizations(Empty) returns (GetOrganizationsResponse);
     rpc isWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
-    rpc organizationExists(OrganizationExistsRequest) returns (OrganizationExistsResponse);
 
 
     // EUR
@@ -255,40 +120,23 @@ service BlockchainService {
     rpc generateBurnFromTx(GenerateBurnFromTxRequest) returns (RawTxResponse);
     rpc generateApproveWithdrawTx(GenerateApproveWithdrawTxRequest) returns (RawTxResponse);
     rpc generateInvestTx(GenerateInvestTxRequest) returns (RawTxResponse);
-    rpc generateCancelPendingInvestmentTx(GenerateCancelPendingInvestmentTxRequest) returns (RawTxResponse);
     rpc getBalance(BalanceRequest) returns (BalanceResponse);
-    rpc generateTransferTx(GenerateTransferTxRequest) returns (RawTxResponse);
 
 
     // Organization
 
-    rpc activateOrganization(ActivateOrganizationRequest) returns (PostTxResponse);
-    rpc generateWithdrawOrganizationFundsTx(GenerateWithdrawOrganizationFundsTxRequest) returns (RawTxResponse);
-    rpc generateAddOrganizationMemberTx(GenerateAddMemberTxRequest) returns (RawTxResponse);
-    rpc isOrganizationVerified(OrganizationVerifiedRequest) returns (OrganizationVerifiedResponse);
-    rpc getAllOrganizationProjects(OrganizationProjectsRequest) returns (OrganizationProjectsResponse);
-    rpc getAllOrganizationMembers(OrganizationMembersRequest) returns (OrganizationMembersResponse);
-
 
     // Project
 
-    rpc generateConfirmInvestmentTx(GenerateConfirmInvestmentTxRequest) returns (RawTxResponse);
     rpc generateStartRevenueSharesPayoutTx(GenerateStartRevenueSharesPayoutTxRequest) returns (RawTxResponse);
-    rpc generatePayoutRevenueSharesTx(GeneratePayoutRevenueSharesTxRequest) returns (RawTxResponse);
-    rpc generateWithdrawInvestmentTx(GenerateWithdrawInvestmentTxRequest) returns (RawTxResponse);
-    rpc generateWithdrawProjectFundsTx(GenerateWithdrawProjectFundsTx) returns (RawTxResponse);
-    rpc getProjectMaxInvestmentPerUser(ProjectMaxInvestmentPerUserRequest) returns (ProjectMaxInvestmentPerUserResponse);
-    rpc getProjectMinInvestmentPerUser(ProjectMinInvestmentPerUserRequest) returns (ProjectMinInvestmentPerUserResponse);
-    rpc getProjectInvestmentCap(ProjectInvestmentCapRequest) returns (ProjectInvestmentCapResponse);
-    rpc getProjectCurrentTotalInvestment(ProjectCurrentTotalInvestmentRequest) returns (ProjectCurrentTotalInvestmentResponse);
-    rpc getProjectTotalInvestmentForUser(ProjectTotalInvestmentForUserRequest) returns (ProjectTotalInvestmentForUserResponse);
-    rpc isProjectCompletelyFunded(ProjectCompletelyFundedRequest) returns (ProjectCompletelyFundedResponse);
 
+    
     // Contract create
     
     rpc generateCreateOrganizationTx(GenerateCreateOrganizationTxRequest) returns (RawTxResponse);
     rpc generateCreateProjectTx(GenerateCreateProjectTxRequest) returns (RawTxResponse);
 
+    
     // Transactions
 
     rpc postTransaction(PostTxRequest) returns (PostTxResponse);

@@ -7,6 +7,8 @@ let contracts = require('../ae/contracts')
 let config = require('../env.json')[process.env.NODE_ENV || 'development']
 let codec = require('../ae/codec')
 let util = require('../ae/util')
+let err = require('../error/errors')
+let ErrorType = err.type
 
 let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
 
@@ -19,9 +21,9 @@ async function postTransaction(call, callback) {
         processTransaction(result.hash)
         console.log(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })
-    } catch(err) {
-        console.log("Error while posting transaction", err)
-        callback(err, null)
+    } catch(error) {
+        console.log("Error while posting transaction", error)
+        err.handle(error, callback)
     }
 }
 
@@ -32,7 +34,7 @@ async function processTransaction(hash) {
     if (info.returnType == 'ok') {
         handleTransactionMined(info, poll)
     } else {
-        handleTransactionFailed(info)
+        handleTransactionFailed(info, hash)
     }
 }
 
@@ -46,8 +48,12 @@ async function handleTransactionMined(info, poll) {
         }
 }
 
-async function handleTransactionFailed(txInfo) {
-
+async function handleTransactionFailed(txInfo, hash) {
+    decodedError = await err.decode(txInfo)
+    repo.update(hash, {
+        state: TxState.FAILED,
+        error_message: decodedError
+    })
 }
 
 async function handleSupervisorAction(tx) {
@@ -215,7 +221,12 @@ async function updateTransactionState(info, poll, type) {
 }
 
 async function performSecurityChecks(data) {
-    let unpackedTx = TxBuilder.unpackTx(data).tx.encodedTx
+    let txMetadata = TxBuilder.unpackTx(data)
+    if (txMetadata.txType != 'signedTx') {
+        throw err.generate(ErrorType.TX_NOT_SIGNED)
+    }
+    let unpackedTx = txMetadata.tx.encodedTx
+
     switch (unpackedTx.txType) {
         case 'contractCallTx':
             await checkTxCaller(unpackedTx.tx.callerId)
@@ -226,7 +237,7 @@ async function performSecurityChecks(data) {
             await checkContractData(unpackedTx.tx)
             break
         default:
-            throw new Error(`Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
+            throw err.generate(ErrorType.GENERIC_ERROR, `Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
     }
 }
 
@@ -240,7 +251,7 @@ async function checkTxCaller(callerId) {
     }
 
     // if caller not found in repo or caller's wallet still not mined exception is thrown
-    return repo.findByWallet(callerId)
+    return repo.findByWalletOrThrow(callerId)
 }
 
 async function checkTxCallee(calleeId) {
@@ -248,8 +259,8 @@ async function checkTxCallee(calleeId) {
     
     let walletActive = await isWalletActive(calleeId)
     if (walletActive) { return }
-
-    throw new Error("Error posting transaction. Target contract not part of AMPnet platform!")
+    
+    throw err.generate(ErrorType.TX_INVALID_CONTRACT_CALLED)
 }
 
 async function checkContractData(tx) {
@@ -257,7 +268,7 @@ async function checkContractData(tx) {
         case contracts.getOrgCompiled().bytecode:
             callData = await codec.decodeDataBySource(contracts.orgSource, "init", tx.callData)
             if (callData.arguments[0].value != contracts.getCoopAddress()) {
-                throw new Error(`Invalid Group create transaction. Invalid master Cooperative contract provided as init parameter!`)
+                throw err.generate(ErrorType.GROUP_INVALID_COOP_ARG)
             }
             break
         case contracts.getProjCompiled().bytecode:
@@ -265,18 +276,18 @@ async function checkContractData(tx) {
             orgAddress = callData.arguments[0].value
             isOrgActive = await isWalletActive(orgAddress)
             if (!isOrgActive) {
-                throw new Error(`Invalid Project create transaction. Invalid Group provided as init parameter.`)
+                throw err.generate(ErrorType.PROJ_INVALID_GROUP_ARG)
             }
             break
         default:
-            throw new Error(`Invalid transaction. Groups and Projects can only be created through official Cooperative platform!`)
+            throw err.generate(ErrorType.MALFORMED_CONTRACT_CODE)
     }
 
     if (tx.amount != 0) {
-        throw new Error(`Error posting Contract create transaction. Amount field has to be set to 0 but ${tx.acmount} provided!`)
+        throw err.generate(ErrorType.GENERIC_ERROR, `Error posting Contract create transaction. Amount field has to be set to 0 but ${tx.amount} provided!`)
     }
     if (tx.deposit != 0) {
-        throw new Error(`Error posting Contract create transaction. Deposit field has to be set to 0 but ${tx.deposit} provided!`)
+        throw err.generate(ErrorType.GENERIC_ERROR, `Error posting Contract create transaction. Deposit field has to be set to 0 but ${tx.deposit} provided!`)
     }
 }
 

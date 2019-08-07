@@ -3,14 +3,15 @@ let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
+let err = require('../error/errors')
 
 async function createProject(call, callback) {
     console.log(`\nReceived request to generate createProject transaction.\Caller: ${call.request.fromTxHash}`)
     try {
-        let fromWallet = (await repo.getWalletOrThrow(call.request.fromTxHash)).wallet
+        let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         console.log(`Caller address represented by given hash: ${fromWallet}`)
         let orgContract = util.enforceCtPrefix(
-            (await repo.getWalletOrThrow(call.request.organizationTxHash)).wallet
+            (await repo.findByHashOrThrow(call.request.organizationTxHash)).wallet
         )
         console.log(`Address of organization which controls this project: ${orgContract}`)
         let callData = await codec.proj.encodeCreateProject(
@@ -34,35 +35,34 @@ async function createProject(call, callback) {
         callback(null, { tx: result.tx })
     } catch (error) {
         console.log(`Error generating createProject transaction: ${error}`)
-        callback(error, null)
+        err.handle(error, callback)
     }
 }
 
 async function startRevenueSharesPayout(call, callback) {
-    console.log(`\nReceived request to generate startRevenueSharesPayout transaction.\Caller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
-    let fromWallet = (await repo.getWalletOrThrow(call.request.fromTxHash)).wallet
-    console.log(`Caller wallet: ${fromWallet}`)
-    let revenue = util.eurToToken(call.request.revenue)
-    console.log(`Revenue: ${revenue}`)
-    let projectWallet = (await repo.getWalletOrThrow(call.request.projectTxHash)).wallet
-    console.log(`Project: ${projectWallet}`)
-    let callData = await codec.proj.encodeStartRevenueSharesPayout(revenue)
-    let tx = await client.instance().contractCallTx({
-        callerId: fromWallet,
-        contractId: util.enforceCtPrefix(projectWallet),
-        abiVersion: 1,
-        amount: 0,
-        gas: 10000,
-        callData: callData
-    })
-    console.log(`Successfully generated startRevenueSharesPayout transaction: ${tx}`)
-    callback(null, { tx: tx })
     try {
-    
-    } catch (error) {
-        console.log(`Error generating createProject transaction: ${error}`)
-        callback(error, null)
-    } 
+        console.log(`\nReceived request to generate startRevenueSharesPayout transaction.\Caller: ${call.request.fromTxHash} wants to payout ${call.request.revenue} tokens to project with hash ${call.request.projectTxHash}`)
+        let fromWallet = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
+        console.log(`Caller wallet: ${fromWallet}`)
+        let revenue = util.eurToToken(call.request.revenue)
+        console.log(`Revenue: ${revenue}`)
+        let projectWallet = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
+        console.log(`Project: ${projectWallet}`)
+        let callData = await codec.proj.encodeStartRevenueSharesPayout(revenue)
+        let tx = await client.instance().contractCallTx({
+            callerId: fromWallet,
+            contractId: util.enforceCtPrefix(projectWallet),
+            abiVersion: 1,
+            amount: 0,
+            gas: 10000,
+            callData: callData
+        })
+        console.log(`Successfully generated startRevenueSharesPayout transaction: ${tx}`)
+        callback(null, { tx: tx })
+    } catch(error) {
+        console.log(`Error while generating startRevenueSharesPayout transaction: ${error}`)
+        err.handle(error, callback)
+    }
 }
 
 

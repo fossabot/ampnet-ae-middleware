@@ -18,7 +18,7 @@ module.exports = {
                 wallet: wallet
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -31,7 +31,7 @@ module.exports = {
                 fromTxHash: fromTxHash
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -45,7 +45,7 @@ module.exports = {
                 amount: amount
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -59,7 +59,7 @@ module.exports = {
                 amount: amount
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -72,7 +72,7 @@ module.exports = {
                 burnFromTxHash: burnFromTxHash
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -87,7 +87,7 @@ module.exports = {
                 amount: amount
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -100,9 +100,9 @@ module.exports = {
                 walletTxHash: walletTxHash
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
-                    resolve(result.balance)
+                    resolve(Number(result.balance))
                 }
             })
         })
@@ -114,7 +114,7 @@ module.exports = {
             }, (err, result) => {
                 if (err != null) {
                     console.log("err", err)
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.active)
                 }
@@ -133,7 +133,7 @@ module.exports = {
             }, (err, result) => {
                 if (err != null) {
                     console.log("err", err)
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -148,7 +148,7 @@ module.exports = {
                 revenue
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.tx)
                 }
@@ -161,7 +161,7 @@ module.exports = {
                 data: data
             }, (err, result) => {
                 if (err != null) {
-                    throw new Error(err)
+                    resolve(err)
                 } else {
                     resolve(result.txHash)
                 }

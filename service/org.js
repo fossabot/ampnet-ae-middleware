@@ -2,11 +2,12 @@ let client = require('../ae/client')
 let codec = require('../ae/codec')
 let contracts = require('../ae/contracts')
 let repo = require('../persistence/repository')
+let err = require('../error/errors')
 
 async function createOrganization(call, callback) {
     try {
         console.log(`\nReceived request to generate createOrganization transaction.\nCaller: ${call.request.fromTxHash}`)
-        let walletTx = await repo.getWalletOrThrow(call.request.fromTxHash)
+        let walletTx = await repo.findByHashOrThrow(call.request.fromTxHash)
         console.log(`Address represented by given hash: ${walletTx.wallet}\n`)
         let callData = await codec.org.encodeCreateOrganization()
         let result = await client.instance().contractCreateTx({
@@ -23,7 +24,7 @@ async function createOrganization(call, callback) {
         callback(null, { tx: result.tx })
     } catch (error) {
         console.log(`Error while generating organization create transaction: ${error}`)
-        callback(error, null)
+        err.handle(error, callback)
     }
 }
 
