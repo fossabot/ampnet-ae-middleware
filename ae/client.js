@@ -1,6 +1,6 @@
 let { Transaction, MemoryAccount, ChainNode, ContractCompilerAPI, Contract } = require('@aeternity/aepp-sdk')
 
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../config')
 
 async function init() {
     let ContractWithAE = await Contract
@@ -8,21 +8,10 @@ async function init() {
         .compose(Transaction, MemoryAccount, ChainNode)
 
     aeInstance = await ContractWithAE({
-        url: config.node.host,
-        internalUrl: config.node.internalHost,
-        keypair: config.node.keypair,
-        nativeMode: true,
-        networkId: 'ae_devnet',
-        compilerUrl: config.compiler.host
-    })
-
-    supervisorInstance = await ContractWithAE({
-        url: config.node.host,
-        internalUrl: config.node.internalHost,
-        keypair: config.supervisor,
-        nativeMode: true,
-        networkId: 'ae_devnet',
-        compilerUrl: config.compiler.host
+        url: config.get().node.url,
+        keypair: config.get().supervisor,
+        networkId: config.get().networkId,
+        compilerUrl: config.get().compilerUrl
     })
 }
 
@@ -30,12 +19,7 @@ function instance() {
     return aeInstance
 }
 
-function supervisor() {
-    return supervisorInstance
-}
-
 module.exports = {
     init,
-    instance,
-    supervisor
+    instance
 }

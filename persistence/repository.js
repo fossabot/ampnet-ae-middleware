@@ -123,11 +123,16 @@ async function update(hash, data) {
     })
 }
 
+async function runMigrations() {
+    return knex.migrate.latest()
+}
+
 module.exports = {
     findByHashOrThrow,
     findByWalletOrThrow,
     getWalletTypeOrThrow,
     saveTransaction,
     update,
-    saveHash
+    saveHash,
+    runMigrations
 }

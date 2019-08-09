@@ -2,14 +2,14 @@ let path = require('path')
 let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc')
 
-let config = require('../../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../../config')
 
 module.exports = {
     start: async function() {
         let protoPath = path.resolve(__dirname, '../../proto/blockchain-service.proto');
         let protoDefinition = protoLoader.loadSync(protoPath);
         let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.crowdfunding.proto;
-        client = await new packageDefinition.BlockchainService(config.grpc.url, grpc.credentials.createInsecure());
+        client = await new packageDefinition.BlockchainService(config.get().grpc.url, grpc.credentials.createInsecure());
         return client
     },
     generateAddWalletTx: async function(wallet) {

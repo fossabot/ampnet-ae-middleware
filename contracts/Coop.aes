@@ -16,6 +16,10 @@ contract Coop =
           activeWallets = {},
           token = None }
     
+    stateful entrypoint transfer_ownership(newOwner: address) =
+        only_owner()
+        put(state{ owner = newOwner })
+    
     stateful entrypoint set_token(token: TokenInterface) =
         only_owner()
         put(state{ token = Some(token) })

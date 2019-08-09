@@ -6,7 +6,7 @@ let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
 
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../config')
 
 async function addWallet(call, callback) {
     console.log(`\nReceived request to generate addWallet transaction.\nWallet: ${call.request.wallet}`)
@@ -20,7 +20,7 @@ async function addWallet(call, callback) {
         let callData = await codec.coop.encodeAddWallet(address)
         let coopAddress = contracts.getCoopAddress()
         let tx = await client.instance().contractCallTx({
-            callerId : config.contracts.coop.owner,
+            callerId : config.get().contracts.coop.owner,
             contractId : coopAddress,
             abiVersion : 1,
             amount : 0,

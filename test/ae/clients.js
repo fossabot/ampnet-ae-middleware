@@ -1,5 +1,5 @@
 let { Universal: Ae } = require('@aeternity/aepp-sdk')
-let config = require('../../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../../config')
 let accounts = require('./accounts')
 
 let coopClient
@@ -9,51 +9,39 @@ let aliceClient
 let emptyClient
 
 async function init() {
-    let networkId = 'ae_devnet'
-
     coopClient = await Ae({
-        url: config.node.host,
-        internalUrl: config.node.internalHost,
+        url: config.get().node.url,
         keypair: accounts.coop,
-        nativeMode: true,
-        networkId: networkId,
-        compilerUrl: config.compiler.host
+        networkId: config.get().node.networkId,
+        compilerUrl: config.get().node.compilerUrl
     })
 
     eurClient = await Ae({
-        url: config.node.host,
-        internalUrl: config.node.internalHost,
+        url: config.get().node.url,
         keypair: accounts.eur,
-        nativeMode: true,
-        networkId: networkId,
-        compilerUrl: config.compiler.host
+        networkId: config.get().node.networkId,
+        compilerUrl: config.get().node.compilerUrl
     })
 
     bobClient = await Ae({
-        url: config.node.host,
-        internalUrl: config.node.internalHost,
+        url: config.get().node.url,
         keypair: accounts.bob,
-        nativeMode: true,
-        networkId: networkId,
-        compilerUrl: config.compiler.host
+        networkId: config.get().node.networkId,
+        compilerUrl: config.get().node.compilerUrl
     })
 
     aliceClient = await Ae({
-        url: config.node.host,
-        internalUrl: config.node.internalHost,
+        url: config.get().node.url,
         keypair: accounts.alice,
-        nativeMode: true,
-        networkId: networkId,
-        compilerUrl: config.compiler.host
+        networkId: config.get().node.networkId,
+        compilerUrl: config.get().node.compilerUrl
     })
 
     emptyClient = await Ae({
-        url: config.node.host,
-        internalUrl: config.node.internalHost,
+        url: config.get().node.url,
         keypair: accounts.empty,
-        nativeMode: true,
-        networkId: networkId,
-        compilerUrl: config.compiler.host
+        networkId: config.get().node.networkId,
+        compilerUrl: config.get().node.compilerUrl
     })
 }
 

@@ -4,7 +4,7 @@ let client = require('../ae/client')
 let repo = require('../persistence/repository')
 let enums = require('../enums/enums')
 let contracts = require('../ae/contracts')
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../config')
 let codec = require('../ae/codec')
 let util = require('../ae/util')
 let err = require('../error/errors')
@@ -60,14 +60,14 @@ async function handleSupervisorAction(tx) {
     switch (tx.type) {
         case TxType.WALLET_CREATE:
             if (tx.wallet_type == WalletType.USER) {
-                await client.supervisor().spend(300000000000000000, tx.wallet).catch(console.log)
+                await client.instance().spend(300000000000000000, tx.wallet).catch(console.log)
                 console.log(`Transferred 0.3AE to user with wallet ${tx.wallet} (welcome gift)`)
                 await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
             }
             break
         case TxType.APPROVE_INVESTMENT:
             contract = util.enforceCtPrefix(tx.to_wallet)
-            result = await client.supervisor().contractCall(
+            result = await client.instance().contractCall(
                 contracts.projSource,
                 contract,
                 enums.functions.proj.invest,
@@ -82,7 +82,7 @@ async function handleSupervisorAction(tx) {
             contract = util.enforceCtPrefix(tx.to_wallet)
             batchCount = 1 
             do {
-                batchPayout = await client.supervisor().contractCall(
+                batchPayout = await client.instance().contractCall(
                     contracts.projSource,
                     contract,
                     enums.functions.proj.payoutRevenueSharesBatch,
@@ -152,7 +152,7 @@ async function updateTransactionState(info, poll, type) {
         case TxType.APPROVE:
             spender = util.decodeAddress(event.topics[1])
             amount = util.tokenToEur(event.topics[2])
-            type = (spender == config.contracts.eur.owner) ? TxType.APPROVE_USER_WITHDRAW : TxType.APPROVE_INVESTMENT
+            type = (spender == config.get().contracts.eur.owner) ? TxType.APPROVE_USER_WITHDRAW : TxType.APPROVE_INVESTMENT
             supervisorStatus = (type == TxType.APPROVE_INVESTMENT) ? SupervisorStatus.REQUIRED : SupervisorStatus.NOT_REQUIRED
             return repo.update(poll.hash, {
                 from_wallet: info.callerId,
@@ -242,8 +242,8 @@ async function performSecurityChecks(data) {
 }
 
 async function checkTxCaller(callerId) {
-    let coopAuthorityId = config.contracts.coop.owner
-    let issuingAuthorityId = config.contracts.eur.owner
+    let coopAuthorityId = config.get().contracts.coop.owner
+    let issuingAuthorityId = config.get().contracts.eur.owner
     
     // if caller is coop or token authority return normally
     if(callerId == coopAuthorityId || callerId == issuingAuthorityId) {

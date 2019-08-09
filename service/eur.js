@@ -6,7 +6,7 @@ let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
 
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../config')
 
 async function mint(call, callback) {
     console.log(`\nReceived request to generate minting of ${call.request.amount} tokens to wallet with txHash ${call.request.toTxHash}`)
@@ -15,7 +15,7 @@ async function mint(call, callback) {
         console.log(`Address represented by given hash: ${record.wallet}`)
         let callData = await codec.eur.encodeMint(record.wallet, util.eurToToken(call.request.amount))
         let tx = await client.instance().contractCallTx({
-            callerId: config.contracts.eur.owner,
+            callerId: config.get().contracts.eur.owner,
             contractId: contracts.getEurAddress(),
             abiVersion: 1,
             amount: 0,
@@ -36,7 +36,7 @@ async function approveWithdraw(call, callback) {
         let record = await repo.findByHashOrThrow(call.request.fromTxHash)
         console.log(`Address represented by given hash: ${record.wallet}`)
         let amount = util.eurToToken(call.request.amount)
-        let callData = await codec.eur.encodeApprove(config.contracts.eur.owner, amount)
+        let callData = await codec.eur.encodeApprove(config.get().contracts.eur.owner, amount)
         let tx = await client.instance().contractCallTx({
             callerId: record.wallet,
             contractId: contracts.getEurAddress(),
@@ -62,7 +62,7 @@ async function burnFrom(call, callback) {
         console.log(`Amount to burn: ${amount}`)
         let callData = await codec.eur.encodeBurnFrom(record.wallet, amount)
         let tx = await client.instance().contractCallTx({
-            callerId: config.contracts.eur.owner,
+            callerId: config.get().contracts.eur.owner,
             contractId: contracts.getEurAddress(),
             abiVersion: 1,
             amount: 0,
@@ -127,7 +127,7 @@ async function allowance(owner) {
         contracts.eurSource,
         contracts.getEurAddress(),
         functions.eur.allowance,
-        [ owner, config.contracts.eur.owner ]
+        [ owner, config.get().contracts.eur.owner ]
     )
     return result.decode()
 }

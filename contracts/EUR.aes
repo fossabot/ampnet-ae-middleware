@@ -34,6 +34,8 @@ contract EUR =
 
   entrypoint allowance(owner: address, spender: address) : int = Map.lookup_default((owner, spender), state.allowed, 0)
 
+  entrypoint owner() : address = state.owner
+
   stateful entrypoint transfer(to: address, value: int) : bool =
     only_coop_user(Call.caller)
     only_coop_user(to)

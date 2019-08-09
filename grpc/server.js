@@ -4,7 +4,7 @@ let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc')
 
 // config
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../config')
 
 // services
 let txSvc = require('../service/transaction')
@@ -12,6 +12,9 @@ let coopSvc = require('../service/coop')
 let eurSvc = require('../service/eur')
 let orgSvc = require('../service/org')
 let projSvc = require('../service/project')
+
+// repository
+let repo = require('../persistence/repository')
 
 // client
 let client = require('../ae/client')
@@ -28,11 +31,19 @@ let server
 
 module.exports = {
     start: async function() {
+        // Run database migrations
+        await repo.runMigrations()
+
+        // Initialize config
+        await config.init()
+        console.log("Config initialized")
+        console.log(config.get())
+
         // Initiallize Aeternity client
         await client.init()
         await contracts.compile()
 
-        // initialize Grpc server
+        // Initialize Grpc server
         server = new grpc.Server();
 
         // gRPC services
@@ -50,7 +61,7 @@ module.exports = {
             postTransaction: txSvc.postTransaction
         });
 
-        server.bind(config.grpc.url, grpc.ServerCredentials.createInsecure());
+        server.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
         return server.start();
     },
     stop: async function() {

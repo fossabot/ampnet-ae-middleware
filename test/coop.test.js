@@ -11,7 +11,7 @@ let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
-let config = require('../env.json')[process.env.NODE_ENV || 'development']
+let config = require('../config')
 
 describe('Main tests', function() {
 
@@ -115,7 +115,7 @@ describe('Main tests', function() {
         assert.strictEqual(recordsCount, expectedRecordCount, `Expected ${expectedRecordCount} transactions but found ${recordsCount} in database.`)
         
         let addBobWalletTxRecord = (await db.getBy({hash: addBobWalletTxHash}))[0]
-        assert.strictEqual(addBobWalletTxRecord.from_wallet, config.contracts.coop.owner)
+        assert.strictEqual(addBobWalletTxRecord.from_wallet, config.get().contracts.coop.owner)
         assert.strictEqual(addBobWalletTxRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(addBobWalletTxRecord.state, TxState.MINED)
         assert.strictEqual(addBobWalletTxRecord.supervisor_status, SupervisorStatus.PROCESSED)
@@ -132,7 +132,7 @@ describe('Main tests', function() {
         let newOrgWallet = createOrgTxRecord.to_wallet
         
         let addOrgWalletTxRecord = (await db.getBy({hash: addOrgWalletTxHash}))[0]
-        assert.strictEqual(addOrgWalletTxRecord.from_wallet, config.contracts.coop.owner)
+        assert.strictEqual(addOrgWalletTxRecord.from_wallet, config.get().contracts.coop.owner)
         assert.strictEqual(addOrgWalletTxRecord.to_wallet, newOrgWallet)
         assert.strictEqual(addOrgWalletTxRecord.state, TxState.MINED)
         assert.strictEqual(addOrgWalletTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
@@ -141,7 +141,7 @@ describe('Main tests', function() {
         assert.strictEqual(addOrgWalletTxRecord.wallet_type, WalletType.ORGANIZATION)
         
         let mintToBobTxRecord = (await db.getBy({hash: mintToBobTxHash}))[0]
-        assert.strictEqual(mintToBobTxRecord.from_wallet, config.contracts.eur.owner)
+        assert.strictEqual(mintToBobTxRecord.from_wallet, config.get().contracts.eur.owner)
         assert.strictEqual(mintToBobTxRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(mintToBobTxRecord.state, TxState.MINED)
         assert.strictEqual(mintToBobTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
@@ -150,7 +150,7 @@ describe('Main tests', function() {
 
         let approveBobWithdrawTxRecord = (await db.getBy({hash: approveBobWithdrawTxHash}))[0]
         assert.strictEqual(approveBobWithdrawTxRecord.from_wallet, accounts.bob.publicKey)
-        assert.strictEqual(approveBobWithdrawTxRecord.to_wallet, config.contracts.eur.owner)
+        assert.strictEqual(approveBobWithdrawTxRecord.to_wallet, config.get().contracts.eur.owner)
         assert.strictEqual(approveBobWithdrawTxRecord.state, TxState.MINED)
         assert.strictEqual(approveBobWithdrawTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(approveBobWithdrawTxRecord.type, TxType.APPROVE_USER_WITHDRAW)
@@ -158,7 +158,7 @@ describe('Main tests', function() {
         
         let bobWithdrawTxRecord = (await db.getBy({hash: burnFromBobTxHash}))[0]
         assert.strictEqual(bobWithdrawTxRecord.from_wallet, accounts.bob.publicKey)
-        assert.strictEqual(bobWithdrawTxRecord.to_wallet, config.contracts.eur.owner)
+        assert.strictEqual(bobWithdrawTxRecord.to_wallet, config.get().contracts.eur.owner)
         assert.strictEqual(bobWithdrawTxRecord.state, TxState.MINED)
         assert.strictEqual(bobWithdrawTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(bobWithdrawTxRecord.type, TxType.WITHDRAW)
@@ -174,7 +174,7 @@ describe('Main tests', function() {
         let newProjWallet = createProjTxRecord.to_wallet
         
         let addProjWalletTxRecord = (await db.getBy({hash: addProjWalletTxHash}))[0]
-        assert.strictEqual(addProjWalletTxRecord.from_wallet, config.contracts.coop.owner)
+        assert.strictEqual(addProjWalletTxRecord.from_wallet, config.get().contracts.coop.owner)
         assert.strictEqual(addProjWalletTxRecord.to_wallet, newProjWallet)
         assert.strictEqual(addProjWalletTxRecord.state, TxState.MINED)
         assert.strictEqual(addProjWalletTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
