@@ -1,8 +1,9 @@
-let environment = process.env.ENVIRONMENT || 'development';
-let config = require('../../knexfile.js')[environment];
-let knex = require('knex')(config)
+let config = require('../../config')
 
-async function truncate() {
+let knex
+
+async function init() {
+    knex = require('knex')(config.get().db)
     return new Promise(resolve => {
         knex.raw('TRUNCATE TABLE transaction').then(_ => {
             resolve()
@@ -33,8 +34,8 @@ async function getBy(constraints) {
 }
 
 module.exports = {
+    init,
     insert,
-    truncate,
     getAll,
     getBy
 }

@@ -1,3 +1,4 @@
+let config = require('../config')
 let client = require('./client')
 let contracts = require('./contracts')
 let functions = require('../enums/enums').functions
@@ -7,7 +8,7 @@ async function encodeAddWallet(wallet) {
 }
 
 async function encodeCreateOrganization() {
-    return contracts.getOrgCompiled().encodeCall("init", [ contracts.getCoopAddress() ])
+    return contracts.getOrgCompiled().encodeCall("init", [ config.get().contracts.coop.address ])
 }
 
 async function encodeCreateProject(org, minInvestment, maxInvestment, investmentCap, endsAt) {

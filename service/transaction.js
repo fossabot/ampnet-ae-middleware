@@ -255,7 +255,7 @@ async function checkTxCaller(callerId) {
 }
 
 async function checkTxCallee(calleeId) {
-    if (calleeId == contracts.getCoopAddress() || calleeId == contracts.getEurAddress()) { return }
+    if (calleeId == config.get().contracts.coop.address || calleeId == config.get().contracts.eur.address) { return }
     
     let walletActive = await isWalletActive(calleeId)
     if (walletActive) { return }
@@ -267,7 +267,7 @@ async function checkContractData(tx) {
     switch (tx.code) {
         case contracts.getOrgCompiled().bytecode:
             callData = await codec.decodeDataBySource(contracts.orgSource, "init", tx.callData)
-            if (callData.arguments[0].value != contracts.getCoopAddress()) {
+            if (callData.arguments[0].value != config.get().contracts.coop.address) {
                 throw err.generate(ErrorType.GROUP_INVALID_COOP_ARG)
             }
             break
@@ -295,7 +295,7 @@ async function isWalletActive(wallet) {
     let address = await util.enforceAkPrefix(wallet)
     let result = await client.instance().contractCallStatic(
         contracts.coopSource, 
-        contracts.getCoopAddress(), 
+        config.get().contracts.coop.address, 
         enums.functions.coop.isWalletActive,
         [ address ]
     )

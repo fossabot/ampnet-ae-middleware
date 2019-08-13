@@ -1,30 +1,26 @@
+let url = require('url')
+
 let { Universal: Ae } = require('@aeternity/aepp-sdk')
 let config = require('../../config')
 let accounts = require('./accounts')
 
-let coopClient
-let eurClient
+let ownerClient
 let bobClient
 let aliceClient
 let emptyClient
 
 async function init() {
-    coopClient = await Ae({
+    ownerClient = await Ae({
         url: config.get().node.url,
-        keypair: accounts.coop,
-        networkId: config.get().node.networkId,
-        compilerUrl: config.get().node.compilerUrl
-    })
-
-    eurClient = await Ae({
-        url: config.get().node.url,
-        keypair: accounts.eur,
+        internalUrl: config.get().node.internalUrl,
+        keypair: config.get().supervisor,
         networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
     })
 
     bobClient = await Ae({
         url: config.get().node.url,
+        internalUrl: config.get().node.internalUrl,
         keypair: accounts.bob,
         networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
@@ -32,6 +28,7 @@ async function init() {
 
     aliceClient = await Ae({
         url: config.get().node.url,
+        internalUrl: config.get().node.internalUrl,
         keypair: accounts.alice,
         networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
@@ -39,6 +36,7 @@ async function init() {
 
     emptyClient = await Ae({
         url: config.get().node.url,
+        internalUrl: config.get().node.internalUrl,
         keypair: accounts.empty,
         networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
@@ -47,8 +45,7 @@ async function init() {
 
 module.exports = {
     init,
-    coop: function() { return coopClient },
-    eur: function() { return eurClient },
+    owner: function() { return ownerClient },
     bob: function() { return bobClient },
     alice: function() { return aliceClient },
     empty: function() { return emptyClient }

@@ -2,6 +2,8 @@
 let path = require('path')
 let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc')
+let express = require('express')
+let actuator = require('express-actuator')
 
 // config
 let config = require('../config')
@@ -31,13 +33,15 @@ let server
 
 module.exports = {
     start: async function() {
-        // Run database migrations
-        await repo.runMigrations()
-
         // Initialize config
+        console.log("initializing config")
         await config.init()
         console.log("Config initialized")
         console.log(config.get())
+
+        // Initialize database and run migrations
+        repo.init()
+        await repo.runMigrations()
 
         // Initiallize Aeternity client
         await client.init()
@@ -62,7 +66,11 @@ module.exports = {
         });
 
         server.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
-        return server.start();
+        await server.start()
+
+        expr = express()
+        expr.use(actuator())
+        expr.listen(50056, "localhost")
     },
     stop: async function() {
         return server.forceShutdown()

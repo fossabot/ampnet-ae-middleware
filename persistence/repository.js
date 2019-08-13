@@ -1,11 +1,15 @@
-let environment = process.env.ENVIRONMENT || 'development';
-let config = require('../knexfile.js')[environment];
+let config = require('../config')
 let util = require('../ae/util')
-let knex = require('knex')(config)
 let err = require('../error/errors')
 let ErrorType = err.type
 
 let { TxState, TxType, WalletType } = require('../enums/enums')
+
+let knex
+
+function init() {
+    knex = require('knex')(config.get().db)
+}
 
 async function findByHashOrThrow(txHash) {
     return new Promise((resolve, reject) => {
@@ -134,5 +138,6 @@ module.exports = {
     saveTransaction,
     update,
     saveHash,
-    runMigrations
+    runMigrations,
+    init
 }

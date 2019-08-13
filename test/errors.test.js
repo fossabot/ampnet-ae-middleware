@@ -8,6 +8,7 @@ let clients = require('./ae/clients')
 let util = require('./util/util')
 let db = require('./util/db')
 
+let config = require('../config')
 let grpcServer = require('../grpc/server')
 let client = require('../ae/client')
 let codec = require('../ae/codec')
@@ -19,15 +20,15 @@ let ErrorType = err.type
 
 describe('Error handling tests', function() {
 
-    before(async () => {
-        await clients.init()
+    beforeEach(async() => {
         await grpcServer.start()
         await grpcClient.start()
+        await clients.init()
+        await db.init()
     })
 
-    beforeEach(async() => {
-        await deployer.deploy()
-        await db.truncate()
+    afterEach(async() => {
+        await grpcServer.stop()
     })
 
     it('Should fail with correct error message if transaction broadcasted but not signed', async () => {
@@ -38,7 +39,7 @@ describe('Error handling tests', function() {
 
     it('Should fail with correct error message if invalid contract is called', async () => {
         addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
@@ -60,7 +61,7 @@ describe('Error handling tests', function() {
 
     it('Should fail with correct error message if Org is created with invalid Coop as argument', async () => {
         addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
@@ -83,7 +84,7 @@ describe('Error handling tests', function() {
 
     it('Should fail with correct error message if Proj is created with invalid Org as argument', async () => {
         addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
@@ -113,7 +114,7 @@ describe('Error handling tests', function() {
 
     it('Should fail with correct error message if trying to deploy arbitrary Contract as Proj/Org', async () => {
         addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
@@ -163,7 +164,7 @@ describe('Error handling tests', function() {
 
     it('Should fail if trying to generate addWallet for txHash but transaction with given hash not yet mined', async () => {
         tx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        txSigned = await clients.coop().signTransaction(tx)
+        txSigned = await clients.owner().signTransaction(tx)
         txHash = await grpcClient.postTransaction(txSigned)
 
         // try to add txHash as new wallet, doesnt make sense but serves the purpose as txHash most probably still not mined
@@ -217,7 +218,7 @@ describe('Error handling tests', function() {
 
     it('Transaction that fails on Contract level should be updated correctly in its db entry', async () => {
         addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
@@ -225,7 +226,7 @@ describe('Error handling tests', function() {
         callData = await codec.coop.encodeAddWallet(accounts.alice.publicKey)
         tx = await client.instance().contractCallTx({
             callerId : accounts.bob.publicKey,
-            contractId : contracts.getCoopAddress(),
+            contractId : config.get().contracts.coop.address,
             abiVersion : 1,
             amount : 0,
             gas : 10000,
@@ -246,7 +247,7 @@ describe('Error handling tests', function() {
 
     it('Transaction that fails on Protocol level should be update correctly in its db entry', async () => {
         addEmptyWalletTx = await grpcClient.generateAddWalletTx(accounts.empty.publicKey)
-        addEmptyWalletTxSigned = await clients.coop().signTransaction(addEmptyWalletTx)
+        addEmptyWalletTxSigned = await clients.owner().signTransaction(addEmptyWalletTx)
         addEmptyWalletTxHash = await grpcClient.postTransaction(addEmptyWalletTxSigned)
         await util.waitMined(addEmptyWalletTxHash)
 
@@ -275,10 +276,6 @@ describe('Error handling tests', function() {
         assert.strictEqual(faultyTxRecord.hash, faultyHash)
         assert.strictEqual(faultyTxRecord.state, TxState.FAILED)
         assert.strictEqual(faultyTxRecord.error_message, 'outofgasG')
-    })
-
-    after(async() => {
-        await grpcServer.stop()
     })
 
 })

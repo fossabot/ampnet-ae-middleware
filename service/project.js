@@ -24,7 +24,6 @@ async function createProject(call, callback) {
         let result = await client.instance().contractCreateTx({
             ownerId: fromWallet,
             code: contracts.getProjCompiled().bytecode,
-            vmVersion: 3,
             abiVersion: 1,
             deposit: 0,
             amount: 0,

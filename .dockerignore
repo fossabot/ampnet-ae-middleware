@@ -1,0 +1,16 @@
+node_modules
+test
+
+.env.full.sample
+.git
+.gitignore
+.forgae-store
+.vscode
+.dockerignore
+
+initialize-local-database.sh
+
+Dockerfile*
+docker-compose*
+
+README.md

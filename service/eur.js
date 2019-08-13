@@ -16,7 +16,7 @@ async function mint(call, callback) {
         let callData = await codec.eur.encodeMint(record.wallet, util.eurToToken(call.request.amount))
         let tx = await client.instance().contractCallTx({
             callerId: config.get().contracts.eur.owner,
-            contractId: contracts.getEurAddress(),
+            contractId: config.get().contracts.eur.address,
             abiVersion: 1,
             amount: 0,
             gas: 10000,
@@ -39,7 +39,7 @@ async function approveWithdraw(call, callback) {
         let callData = await codec.eur.encodeApprove(config.get().contracts.eur.owner, amount)
         let tx = await client.instance().contractCallTx({
             callerId: record.wallet,
-            contractId: contracts.getEurAddress(),
+            contractId: config.get().contracts.eur.address,
             abiVersion: 1,
             amount: 0,
             gas: 10000,
@@ -63,7 +63,7 @@ async function burnFrom(call, callback) {
         let callData = await codec.eur.encodeBurnFrom(record.wallet, amount)
         let tx = await client.instance().contractCallTx({
             callerId: config.get().contracts.eur.owner,
-            contractId: contracts.getEurAddress(),
+            contractId: config.get().contracts.eur.address,
             abiVersion: 1,
             amount: 0,
             gas: 10000,
@@ -84,7 +84,7 @@ async function balance(call, callback) {
         console.log(`Address represented by given hash: ${tx.wallet}\n`)
         let result = await client.instance().contractCallStatic(
             contracts.eurSource,
-            contracts.getEurAddress(),
+            config.get().contracts.eur.address,
             functions.eur.balanceOf,
             [ tx.wallet ]
         )
@@ -92,6 +92,7 @@ async function balance(call, callback) {
         let resultInEur = util.tokenToEur(resultDecoded)
         callback(null, { balance: resultInEur })
     } catch (error) {
+        console.log(error)
         console.log(`Error while fetching balance: ${error}`)
         err.handle(error, callback)
     }
@@ -108,7 +109,7 @@ async function invest(call, callback) {
         let callData = await codec.eur.encodeApprove(project, amount)
         let tx = await client.instance().contractCallTx({
             callerId: investor,
-            contractId: contracts.getEurAddress(),
+            contractId: config.get().contracts.eur.address,
             abiVersion: 1,
             amount: 0,
             gas: 10000,
@@ -125,7 +126,7 @@ async function invest(call, callback) {
 async function allowance(owner) {
     let result = await client.instance().contractCallStatic(
         contracts.eurSource,
-        contracts.getEurAddress(),
+        config.get().contracts.eur.address,
         functions.eur.allowance,
         [ owner, config.get().contracts.eur.owner ]
     )

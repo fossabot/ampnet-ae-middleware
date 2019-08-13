@@ -18,7 +18,7 @@ async function addWallet(call, callback) {
             address = call.request.wallet
         }
         let callData = await codec.coop.encodeAddWallet(address)
-        let coopAddress = contracts.getCoopAddress()
+        let coopAddress = config.get().contracts.coop.address
         let tx = await client.instance().contractCallTx({
             callerId : config.get().contracts.coop.owner,
             contractId : coopAddress,
@@ -42,7 +42,7 @@ async function walletActive(call, callback) {
         console.log(`Address represented by given hash: ${tx.wallet}\n`)
         let result = await client.instance().contractCallStatic(
             contracts.coopSource, 
-            contracts.getCoopAddress(),
+            config.get().contracts.coop.address,
             functions.coop.isWalletActive, 
             [ tx.wallet ]
         )

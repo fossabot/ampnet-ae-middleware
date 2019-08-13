@@ -1,3 +1,4 @@
+let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
 
@@ -15,20 +16,21 @@ let config = require('../config')
 
 describe('Main tests', function() {
 
-    before(async () => {
-        await clients.init()
+    beforeEach(async() => {
+        // await deployer.deploy()
         await grpcServer.start()
         await grpcClient.start()
+        await clients.init()
+        await db.init()
     })
 
-    beforeEach(async() => {
-        await deployer.deploy()
-        await db.truncate()
+    afterEach(async() => {
+        await grpcServer.stop()
     })
 
     it('Should be possible to run one complete life-cycle of a project to be funded', async () => {
         let addBobWalletTx = await grpcClient.generateAddWalletTx(accounts.bob.publicKey)
-        let addBobWalletTxSigned = await clients.coop().signTransaction(addBobWalletTx)
+        let addBobWalletTxSigned = await clients.owner().signTransaction(addBobWalletTx)
         let addBobWalletTxHash = await grpcClient.postTransaction(addBobWalletTxSigned)
         await util.waitMined(addBobWalletTxHash)
 
@@ -41,13 +43,13 @@ describe('Main tests', function() {
         await util.waitMined(createOrgTxHash)
 
         let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
-        let addOrgWalletTxSigned = await clients.coop().signTransaction(addOrgWalletTx)
+        let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
         let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
         await util.waitMined(addOrgWalletTxHash)
 
         let mintToBobAmount = 101000
         let mintToBobTx = await grpcClient.generateMintTx(addBobWalletTxHash, mintToBobAmount)
-        let mintToBobTxSigned = await clients.eur().signTransaction(mintToBobTx)
+        let mintToBobTxSigned = await clients.owner().signTransaction(mintToBobTx)
         let mintToBobTxHash = await grpcClient.postTransaction(mintToBobTxSigned)
         await util.waitMined(mintToBobTxHash)
 
@@ -61,7 +63,7 @@ describe('Main tests', function() {
         await util.waitMined(approveBobWithdrawTxHash)
 
         let burnFromBobTx = await grpcClient.generateBurnFromTx(addBobWalletTxHash)
-        let burnFromBobTxSigned = await clients.eur().signTransaction(burnFromBobTx)
+        let burnFromBobTxSigned = await clients.owner().signTransaction(burnFromBobTx)
         let burnFromBobTxHash = await grpcClient.postTransaction(burnFromBobTxSigned)
         await util.waitMined(burnFromBobTxHash)
 
@@ -81,7 +83,7 @@ describe('Main tests', function() {
         await util.waitMined(createProjTxHash)
         
         let addProjWalletTx = await grpcClient.generateAddWalletTx(createProjTxHash)
-        let addProjWalletTxSigned = await clients.coop().signTransaction(addProjWalletTx)
+        let addProjWalletTxSigned = await clients.owner().signTransaction(addProjWalletTx)
         let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned)
         await util.waitMined(addProjWalletTxHash)
 
@@ -207,16 +209,13 @@ describe('Main tests', function() {
         assert.equal(startRevenuePayoutTxRecord.amount, revenueToPayout)
 
         let revenueSharePayoutTxRecord = (await db.getBy({type: TxType.SHARE_PAYOUT}))[0]
+        console.log("revenue share payout record", revenueSharePayoutTxRecord)
         assert.strictEqual(revenueSharePayoutTxRecord.from_wallet, newProjWallet)
         assert.strictEqual(revenueSharePayoutTxRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(revenueSharePayoutTxRecord.state, TxState.MINED)
         assert.strictEqual(revenueSharePayoutTxRecord.supervisor_status, SupervisorStatus.NOT_REQUIRED)
         assert.strictEqual(revenueSharePayoutTxRecord.type, TxType.SHARE_PAYOUT)
         assert.equal(revenueSharePayoutTxRecord.amount, revenueToPayout)
-    })
-
-    after(async() => {
-        await grpcServer.stop()
     })
 
 })

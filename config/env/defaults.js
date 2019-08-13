@@ -1,3 +1,5 @@
+let path = require('path')
+
 let { Universal: Ae } = require('@aeternity/aepp-sdk')
 let contracts = require('../../ae/contracts')
 
@@ -11,17 +13,21 @@ async function get() {
     process.env.NODE_ENV = process.env.NODE_ENV || Environment.LOCAL
     let node = {
         url: getNodeUrl(),
+        internalUrl: getNodeInternalUrl(),
         compilerUrl: getCompilerUrl(),
         networkId: getNetworkId()
     }
     let supervisorKeypair = getSupervisorKeypair()
     let contracts = await getContracts(node, supervisorKeypair)
     let grpc = getGrpc()
+    let db = getDb()
     return {
+        env: process.env.NODE_ENV,
         node: node,
         supervisor: supervisorKeypair,
         contracts: contracts,
-        grpc: grpc
+        grpc: grpc,
+        db: db
     }
 }
 
@@ -34,6 +40,15 @@ function getNodeUrl() {
     }
 }
 
+function getNodeInternalUrl() {
+    if (process.env.NODE_INTERNAL_URL) { return process.env.NODE_INTERNAL_URL }
+    switch (process.env.NODE_ENV) {
+        case Environment.LOCAL: return "http://localhost:3001/internal"
+        case Environment.TESTNET: return "https://sdk-testnet.aepps.com"
+        case Environment.MAINNET: return "https://sdk-mainnet.aepps.com"
+    }
+}
+ 
 function getCompilerUrl() {
     if (process.env.COMPILER_URL) { return process.env.COMPILER_URL }
     switch (process.env.NODE_ENV) {
@@ -53,9 +68,13 @@ function getNetworkId() {
 }
 
 function getSupervisorKeypair() {
-    let forgaeFirstKeypair = {
+    let localKeypair = {
         publicKey: "ak_fUq2NesPXcYZ1CcqBcGC3StpdnQw3iVxMA3YSeCNAwfN4myQk",
         secretKey: "7c6e602a94f30e4ea7edabe4376314f69ba7eaa2f355ecedb339df847b6f0d80575f81ffb0a297b7725dc671da0b1769b1fc5cbe45385c7b5ad1fc2eaf1d609d"
+    }
+    let testnetKeypair = {
+        publicKey: "ak_wEqE2S14rFHRoGJkRyWCt8dyzSAEhR6jKWqKbhAyWQMjJgS9Q",
+        secretKey: "e1255e9665f4764547c1cfe01d6906072ec8563f4ad5286c78ed2f7a1f0ba5d47b27b3ea5f10b955f458b52626a9ad775dee8c7d14b3f31976f1fbd4dc871e77"
     }
     if (process.env.SUPERVISOR_PUBLIC_KEY && process.env.SUPERVISOR_PRIVATE_KEY) {
         return {
@@ -64,15 +83,18 @@ function getSupervisorKeypair() {
         }
     }
     switch (process.env.NODE_ENV) {
-        case Environment.LOCAL: return forgaeFirstKeypair
-        case Environment.TESTNET: return forgaeFirstKeypair
+        case Environment.LOCAL: return localKeypair
+        case Environment.TESTNET: return testnetKeypair
         case Environment.MAINNET: throw new Error("When deploying to mainnet, supervisor keypair should be provided as environment vars!")
     }
 }
 
 async function getContracts(node, supervisorKeypair) {
+    console.log("node", node)
+    console.log("supervisor keypair", supervisorKeypair)
     client = await Ae({
         url: node.url,
+        internalUrl: node.internalUrl,
         keypair: supervisorKeypair,
         networkId: node.networkId,
         compilerUrl: node.compilerUrl
@@ -156,6 +178,58 @@ function getGrpc() {
     }
 }
 
-// function get() { return config }
+function getDb() {
+    var host
+    var user
+    var password
+    var port
+    var database
+    
+    var poolMin = 2
+    var poolMax = 10
+    var idleTimeoutMillis = 30000 
+    
+    host = process.env.DB_HOST || "127.0.0.1"
+    port = process.env.DB_PORT || "5432"
+
+    switch (process.env.NODE_ENV) {
+        case Environment.LOCAL:
+            poolMin = 0
+            idleTimeoutMillis = 500
+            user = process.env.DB_USER || "ae_middleware_local"
+            password = process.env.DB_PASSWORD || "password"
+            database = process.env.DB_NAME || "ae_middleware_local"
+            break
+        case Environment.TESTNET:
+            user = process.env.DB_USER || "ae_middleware_testnet"
+            password = process.env.DB_PASSWORD || "password"
+            database = process.env.DB_NAME || "ae_middleware_testnet"
+            break
+        case Environment.MAINNET:
+            user = process.env.DB_USER || "ae_middleware_mainnet"
+            password = process.env.DB_PASSWORD || "password"
+            database = process.env.DB_NAME || "ae_middleware_mainnet"
+            break
+    }
+
+    return {
+        client: 'postgresql',
+        connection: {
+            host: host,
+            user: user,
+            password: password,
+            port: port,
+            database: database
+        },
+        pool: {
+            min: poolMin,
+            max: poolMax,
+            idleTimeoutMillis: idleTimeoutMillis
+        },
+        migrations: {
+            directory: path.join(__dirname, '..', '..', 'db', 'migrations'),
+        }
+    }
+}
 
 module.exports = { get }

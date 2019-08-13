@@ -13,7 +13,6 @@ async function createOrganization(call, callback) {
         let result = await client.instance().contractCreateTx({
             ownerId: walletTx.wallet,
             code: contracts.getOrgCompiled().bytecode,
-            vmVersion: 3,
             abiVersion: 1,
             deposit: 0,
             amount: 0,
