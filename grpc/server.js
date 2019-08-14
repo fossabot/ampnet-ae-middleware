@@ -34,15 +34,18 @@ let server
 module.exports = {
     start: async function() {
         // Initialize config
-        console.log("initializing config")
+        console.log("Initializing config")
         await config.init()
         console.log("Config initialized")
         console.log(config.get())
 
         // Initialize database and run migrations
+        console.log("Initializing repo")
         repo.init()
+        console.log("Repo initialized")
+        console.log("Running migrations")
         await repo.runMigrations()
-
+        console.log("Migrations processed")
         // Initiallize Aeternity client
         await client.init()
         await contracts.compile()
@@ -70,7 +73,7 @@ module.exports = {
 
         expr = express()
         expr.use(actuator())
-        expr.listen(50056, "localhost")
+        expr.listen(config.get().http.port)
     },
     stop: async function() {
         return server.forceShutdown()

@@ -20,6 +20,7 @@ async function get() {
     let supervisorKeypair = getSupervisorKeypair()
     let contracts = await getContracts(node, supervisorKeypair)
     let grpc = getGrpc()
+    let http = getHttp()
     let db = getDb()
     return {
         env: process.env.NODE_ENV,
@@ -27,6 +28,7 @@ async function get() {
         supervisor: supervisorKeypair,
         contracts: contracts,
         grpc: grpc,
+        http: http,
         db: db
     }
 }
@@ -73,8 +75,8 @@ function getSupervisorKeypair() {
         secretKey: "7c6e602a94f30e4ea7edabe4376314f69ba7eaa2f355ecedb339df847b6f0d80575f81ffb0a297b7725dc671da0b1769b1fc5cbe45385c7b5ad1fc2eaf1d609d"
     }
     let testnetKeypair = {
-        publicKey: "ak_wEqE2S14rFHRoGJkRyWCt8dyzSAEhR6jKWqKbhAyWQMjJgS9Q",
-        secretKey: "e1255e9665f4764547c1cfe01d6906072ec8563f4ad5286c78ed2f7a1f0ba5d47b27b3ea5f10b955f458b52626a9ad775dee8c7d14b3f31976f1fbd4dc871e77"
+        publicKey: "ak_2rTfmU3BQHohJvLPoHzRKWijgqbFi4dwYmzVjyqgQrQAQmkhr6",
+        secretKey: "2826a2b18d1bb2530341eb28e4e582613cd9d0687e7681c89a34159f39d554c3f40028b9aa6ee6fbcb53135799866edf08b8eb838fe9e56d9691d0963951358f"
     }
     if (process.env.SUPERVISOR_PUBLIC_KEY && process.env.SUPERVISOR_PRIVATE_KEY) {
         return {
@@ -90,8 +92,6 @@ function getSupervisorKeypair() {
 }
 
 async function getContracts(node, supervisorKeypair) {
-    console.log("node", node)
-    console.log("supervisor keypair", supervisorKeypair)
     client = await Ae({
         url: node.url,
         internalUrl: node.internalUrl,
@@ -174,7 +174,13 @@ function getGrpc() {
         }
     }
     return {
-        url: "localhost:50055"
+        url: "0.0.0.0:50055"
+    }
+}
+
+function getHttp() {
+    return {
+        port: process.env.HTTP_PORT || 50056
     }
 }
 
@@ -189,7 +195,7 @@ function getDb() {
     var poolMax = 10
     var idleTimeoutMillis = 30000 
     
-    host = process.env.DB_HOST || "127.0.0.1"
+    host = process.env.DB_HOST || ((process.env.NODE_ENV == Environment.LOCAL) ? "localhost" : "db")
     port = process.env.DB_PORT || "5432"
 
     switch (process.env.NODE_ENV) {
