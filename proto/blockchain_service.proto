@@ -1,0 +1,328 @@
+syntax = "proto3";
+option java_multiple_files = true;
+package com.ampnet.crowdfunding.proto;
+
+/********** IMPORTANT NOTE:***************
+All amount (fiat) values in request and response messages are x100 format integers,
+for example amount: 1550 is actually 15.50 EUR.
+******************************************/
+
+enum TransactionType {
+    WALLET_CREATE = 0;
+    ORG_CREATE = 1;
+    DEPOSIT = 2;
+    APPROVE = 3;
+    PENDING_ORG_WITHDRAW = 4;
+    PENDING_PROJ_WITHDRAW = 5;
+    WITHDRAW = 6;
+    INVEST = 7;
+    TRANSFER = 8;
+    ORG_ADD_MEMBER = 9;
+    ORG_ADD_PROJECT = 10;
+    ORG_ACTIVATE = 11;
+    START_REVENUE_PAYOUT = 12;
+    REVENUE_PAYOUT = 13;
+    SHARE_PAYOUT = 14;
+    WITHDRAW_INVESTMENT = 15;
+}
+
+//////// Cooperative contract messages ///////
+
+message AddWalletRequest {
+    string public_key = 1;
+    string address = 2;
+}
+
+message GenerateAddOrganizationTxRequest {
+    string from_tx_hash = 1;
+}
+
+message OrganizationExistsRequest {
+    string organization_tx_hash = 1;
+}
+
+message OrganizationExistsResponse {
+    bool exists = 1;
+}
+
+message GetOrganizationsResponse {
+    repeated string organizations = 1;
+}
+
+message WalletActiveRequest {
+    string wallet_tx_hash = 1;
+}
+
+message WalletActiveResponse {
+    bool active = 1;
+}
+
+
+///////// EUR contract messages //////////
+
+message BalanceRequest {
+    string wallet_tx_hash = 1;
+}
+
+message BalanceResponse {
+    uint64 balance = 1;
+}
+
+// Called by token issuing authority, not using txHash here
+message GenerateMintTxRequest {
+    string from = 1;
+    string to_tx_hash = 2;
+    uint64 amount = 3;
+}
+
+// Called by token issuing authority, not using txHash here
+message GenerateBurnFromTxRequest {
+    string from = 1;
+    string burn_from_tx_hash = 2;
+    uint64 amount = 3;
+}
+
+message GenerateApproveWithdrawTxRequest {
+    string from_tx_hash = 1;
+    uint64 amount = 2;
+}
+
+message GenerateInvestmentTxRequest {
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
+    uint64 amount = 3;
+}
+
+message GenerateCancelPendingInvestmentTxRequest {
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
+}
+
+message GenerateTransferTxRequest {
+    string from_tx_hash = 1;
+    string to_tx_hash = 2;
+    uint64 amount = 3;
+}
+
+
+///////// Organization contract //////////
+
+message ActivateOrganizationRequest {
+    string organization_tx_hash = 1;
+}
+
+message GenerateWithdrawOrganizationFundsTxRequest {
+    string from_tx_hash = 1;
+    string organization_tx_hash = 2;
+    uint64 amount = 3;
+}
+
+message GenerateAddMemberTxRequest {
+    string from_tx_hash = 1;
+    string organization_tx_hash = 2;
+    string member_tx_hash = 3;
+}
+
+message GenerateAddProjectTxRequest {
+    string from_tx_hash = 1;
+    string organization_tx_hash = 2;
+    uint64 maxInvestment_per_user = 3;
+    uint64 minInvestment_per_user = 4;
+    uint64 investment_cap = 5;
+    uint64 endInvestment_time = 6;
+}
+
+message OrganizationVerifiedRequest {
+    string organization_tx_hash = 1;
+}
+
+message OrganizationVerifiedResponse {
+    bool verified = 1;
+}
+
+message OrganizationProjectsRequest {
+    string organization_tx_hash = 1;
+}
+
+message OrganizationProjectsResponse {
+    repeated string projects = 1;
+}
+
+message OrganizationMembersRequest {
+    string organization_tx_hash = 1;
+}
+
+message OrganizationMembersResponse {
+    repeated string members = 1;
+}
+
+
+///////// Project contract ///////////////
+
+message GenerateConfirmInvestmentTxRequest {
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
+}
+
+message GenerateStartRevenuePayoutTxRequest {
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
+    uint64 revenue = 3;
+}
+
+message GeneratePayoutRevenueSharesTxRequest {
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
+}
+
+message GenerateWithdrawInvestmentTxRequest {
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
+}
+
+message GenerateWithdrawProjectFundsTx {
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
+    uint64 amount = 3;
+}
+
+message ProjectMaxInvestmentPerUserRequest {
+    string project_tx_hash = 1;
+}
+
+message ProjectMaxInvestmentPerUserResponse {
+    uint64 amount = 1;
+}
+
+message ProjectMinInvestmentPerUserRequest {
+    string project_tx_hash = 1;
+}
+
+message ProjectMinInvestmentPerUserResponse {
+    uint64 amount = 1;
+}
+
+message ProjectInvestmentCapRequest {
+    string project_tx_hash = 1;
+}
+
+message ProjectInvestmentCapResponse {
+    uint64 amount = 1;
+}
+
+message ProjectCurrentTotalInvestmentRequest {
+    string project_tx_hash = 1;
+}
+
+message ProjectCurrentTotalInvestmentResponse {
+    uint64 amount = 1;
+}
+
+message ProjectTotalInvestmentForUserRequest {
+    string project_tx_hash = 1;
+    string user_tx_hash = 2;
+}
+
+message ProjectTotalInvestmentForUserResponse {
+    uint64 amount = 1;
+}
+
+message ProjectCompletelyFundedRequest {
+    string project_tx_hash = 1;
+}
+
+message ProjectCompletelyFundedResponse {
+    bool funded = 1;
+}
+
+
+////////// Transaction messages //////////
+
+message PostTxRequest {
+    string data = 1;
+    TransactionType tx_type = 2;
+}
+
+message PostVaultTxRequest {
+    string data = 1;
+    TransactionType tx_type = 2;
+}
+
+message PostTxResponse {
+    string tx_hash = 1;
+}
+
+
+////////// Generic messages ////////////////
+
+message RawTxResponse {
+    string data = 1;
+    string to = 2;
+    uint64 nonce = 3;
+    uint64 gas_limit = 4;
+    uint64 gas_price = 5;
+    uint64 value = 6;
+    string public_key = 7;
+}
+
+message Empty {
+
+}
+
+
+///////// Service definition ////////////////
+
+service BlockchainService {
+
+    // Cooperative
+
+    rpc AddWallet(AddWalletRequest) returns (PostTxResponse);
+    rpc GenerateAddOrganizationTx(GenerateAddOrganizationTxRequest) returns (RawTxResponse);
+    rpc GetOrganizations(Empty) returns (GetOrganizationsResponse);
+    rpc IsWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
+    rpc OrganizationExists(OrganizationExistsRequest) returns (OrganizationExistsResponse);
+
+
+    // EUR
+
+    rpc GenerateMintTx(GenerateMintTxRequest) returns (RawTxResponse);
+    rpc GenerateBurnFromTx(GenerateBurnFromTxRequest) returns (RawTxResponse);
+    rpc GenerateApproveWithdrawTx(GenerateApproveWithdrawTxRequest) returns (RawTxResponse);
+    rpc GenerateInvestmentTx(GenerateInvestmentTxRequest) returns (RawTxResponse);
+    rpc GenerateCancelPendingInvestmentTx(GenerateCancelPendingInvestmentTxRequest) returns (RawTxResponse);
+    rpc GetBalance(BalanceRequest) returns (BalanceResponse);
+    rpc GenerateTransferTx(GenerateTransferTxRequest) returns (RawTxResponse);
+
+
+    // Organization
+
+    rpc ActivateOrganization(ActivateOrganizationRequest) returns (PostTxResponse);
+    rpc GenerateWithdrawOrganizationFundsTx(GenerateWithdrawOrganizationFundsTxRequest) returns (RawTxResponse);
+    rpc GenerateAddOrganizationMemberTx(GenerateAddMemberTxRequest) returns (RawTxResponse);
+    rpc GenerateAddOrganizationProjectTx(GenerateAddProjectTxRequest) returns (RawTxResponse);
+    rpc IsOrganizationVerified(OrganizationVerifiedRequest) returns (OrganizationVerifiedResponse);
+    rpc GetAllOrganizationProjects(OrganizationProjectsRequest) returns (OrganizationProjectsResponse);
+    rpc GetAllOrganizationMembers(OrganizationMembersRequest) returns (OrganizationMembersResponse);
+
+
+    // Project
+
+    rpc GenerateConfirmInvestmentTx(GenerateConfirmInvestmentTxRequest) returns (RawTxResponse);
+    rpc GenerateStartRevenuePayoutTx(GenerateStartRevenuePayoutTxRequest) returns (RawTxResponse);
+    rpc GeneratePayoutRevenueSharesTx(GeneratePayoutRevenueSharesTxRequest) returns (RawTxResponse);
+    rpc GenerateWithdrawInvestmentTx(GenerateWithdrawInvestmentTxRequest) returns (RawTxResponse);
+    rpc GenerateWithdrawProjectFundsTx(GenerateWithdrawProjectFundsTx) returns (RawTxResponse);
+    rpc GetProjectMaxInvestmentPerUser(ProjectMaxInvestmentPerUserRequest) returns (ProjectMaxInvestmentPerUserResponse);
+    rpc GetProjectMinInvestmentPerUser(ProjectMinInvestmentPerUserRequest) returns (ProjectMinInvestmentPerUserResponse);
+    rpc GetProjectInvestmentCap(ProjectInvestmentCapRequest) returns (ProjectInvestmentCapResponse);
+    rpc GetProjectCurrentTotalInvestment(ProjectCurrentTotalInvestmentRequest) returns (ProjectCurrentTotalInvestmentResponse);
+    rpc GetProjectTotalInvestmentForUser(ProjectTotalInvestmentForUserRequest) returns (ProjectTotalInvestmentForUserResponse);
+    rpc IsProjectCompletelyFunded(ProjectCompletelyFundedRequest) returns (ProjectCompletelyFundedResponse);
+
+
+    // Transactions
+
+    rpc PostTransaction(PostTxRequest) returns (PostTxResponse);
+    rpc PostVaultTransaction(PostVaultTxRequest) returns (PostTxResponse);
+
+}
