@@ -27,6 +27,20 @@ async function postTransaction(call, callback) {
     }
 }
 
+async function getPortfolio(call, callback) {
+    console.log(`\nReceived request to fetch portfolio for user with wallet txHash ${call.request.txHash}`)
+    try {
+        let tx = await repo.findByHashOrThrow(call.request.txHash)
+        console.log(`Address represented by given hash: ${tx.wallet}\n`)
+        let portfolio = await repo.getPortfolio(call.request.txHash)
+        console.log("Successfully fetched portfolio: ", portfolio)
+        callback(null, { portfolio: portfolio })
+    } catch (error) {
+        console.log(`Error while fetching portfolio: ${error}`)
+        err.handle(error, callback)
+    }
+}
+
 async function processTransaction(hash) {
     await repo.saveHash(hash)
     let poll = await client.instance().poll(hash)
@@ -302,4 +316,4 @@ async function isWalletActive(wallet) {
     return result.decode()
 }
 
-module.exports = { postTransaction }
+module.exports = { postTransaction, getPortfolio }

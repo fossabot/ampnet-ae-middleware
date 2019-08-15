@@ -70,12 +70,20 @@ message PostTxRequest {
     string data = 1;
 }
 
-message PostVaultTxRequest {
-    string data = 1;
-}
-
 message PostTxResponse {
     string tx_hash = 1;
+}
+
+message PortfolioRequest {
+    string tx_hash = 1;
+}
+
+message PortfolioResponse {
+    message Investment {
+        string project_tx_hash = 1;
+        string amount = 2;
+    }
+    repeated Investment portfolio = 1;
 }
 
 ///////// Contract create messages /////////
@@ -140,5 +148,6 @@ service BlockchainService {
     // Transactions
 
     rpc PostTransaction(PostTxRequest) returns (PostTxResponse);
+    rpc GetPortfolio(PortfolioRequest) returns (PortfolioResponse);
 
 }

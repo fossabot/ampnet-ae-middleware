@@ -85,6 +85,25 @@ async function getWalletTypeOrThrow(address) {
     })
 }
 
+async function getPortfolio(walletTxHash) {
+    let wallet = (await findByHashOrThrow(walletTxHash)).wallet
+    let records = await get({
+        from_wallet: wallet,
+        type: TxType.INVEST
+    })
+    let portfolio = records.map(investmentRecord => {
+        return new Promise(resolve => {
+            findByWalletOrThrow(investmentRecord.to_wallet).then(tx => {
+                resolve({
+                    projectTxHash: tx.hash,
+                    amount: investmentRecord.amount
+                })
+            })
+        })
+    })
+    return Promise.all(portfolio)
+}
+
 async function saveHash(hash) {
     return new Promise(resolve => {
         knex('transaction')
@@ -131,10 +150,24 @@ async function runMigrations() {
     return knex.migrate.latest()
 }
 
+async function get(filter) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where(filter)
+            .then(records => {
+                resolve(records)
+            })
+            .catch(error => {
+                console.log("save tx error", error)
+            })
+    })
+}
+
 module.exports = {
     findByHashOrThrow,
     findByWalletOrThrow,
     getWalletTypeOrThrow,
+    getPortfolio,
     saveTransaction,
     update,
     saveHash,

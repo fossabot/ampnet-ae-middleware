@@ -167,5 +167,18 @@ module.exports = {
                 }
             })
         })
+    },
+    getPortfolio: async function(txHash) {
+        return new Promise(resolve => {
+            client.getPortfolio({
+                txHash: txHash
+            }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.portfolio)
+                }
+            })
+        })
     }
 }
