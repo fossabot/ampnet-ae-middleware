@@ -209,7 +209,6 @@ describe('Main tests', function() {
         assert.equal(startRevenuePayoutTxRecord.amount, revenueToPayout)
 
         let revenueSharePayoutTxRecord = (await db.getBy({type: TxType.SHARE_PAYOUT}))[0]
-        console.log("revenue share payout record", revenueSharePayoutTxRecord)
         assert.strictEqual(revenueSharePayoutTxRecord.from_wallet, newProjWallet)
         assert.strictEqual(revenueSharePayoutTxRecord.to_wallet, accounts.bob.publicKey)
         assert.strictEqual(revenueSharePayoutTxRecord.state, TxState.MINED)

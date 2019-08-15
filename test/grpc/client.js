@@ -6,7 +6,7 @@ let config = require('../../config')
 
 module.exports = {
     start: async function() {
-        let protoPath = path.resolve(__dirname, '../../proto/blockchain-service.proto');
+        let protoPath = path.resolve(__dirname, '../../proto/blockchain_service.proto');
         let protoDefinition = protoLoader.loadSync(protoPath);
         let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.crowdfunding.proto;
         client = await new packageDefinition.BlockchainService(config.get().grpc.url, grpc.credentials.createInsecure());

@@ -13,7 +13,7 @@ message GenerateAddWalletTxRequest {
 }
 
 message WalletActiveRequest {
-    string walletTxHash = 1;
+    string wallet_tx_hash = 1;
 }
 
 message WalletActiveResponse {
@@ -24,7 +24,7 @@ message WalletActiveResponse {
 ///////// EUR contract messages //////////
 
 message BalanceRequest {
-    string walletTxHash = 1;
+    string wallet_tx_hash = 1;
 }
 
 message BalanceResponse {
@@ -32,22 +32,22 @@ message BalanceResponse {
 }
 
 message GenerateMintTxRequest {
-    string toTxHash = 1;
+    string to_tx_hash = 1;
     string amount = 2;
 }
 
 message GenerateBurnFromTxRequest {
-    string burnFromTxHash = 1;
+    string burn_from_tx_hash = 1;
 }
 
 message GenerateApproveWithdrawTxRequest {
-    string fromTxHash = 1;
+    string from_tx_hash = 1;
     string amount = 2;
 }
 
 message GenerateInvestTxRequest {
-    string fromTxHash = 1;
-    string projectTxHash = 2;
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
     string amount = 3;
 }
 
@@ -58,8 +58,8 @@ message GenerateInvestTxRequest {
 ///////// Project contract ///////////////
 
 message GenerateStartRevenueSharesPayoutTxRequest {
-    string fromTxHash = 1;
-    string projectTxHash = 2;
+    string from_tx_hash = 1;
+    string project_tx_hash = 2;
     string revenue = 3;
 }
 
@@ -75,22 +75,22 @@ message PostVaultTxRequest {
 }
 
 message PostTxResponse {
-    string txHash = 1;
+    string tx_hash = 1;
 }
 
 ///////// Contract create messages /////////
 
 message GenerateCreateOrganizationTxRequest {
-    string fromTxHash = 1;
+    string from_tx_hash = 1;
 }
 
 message GenerateCreateProjectTxRequest {
-    string fromTxHash = 1;
-    string organizationTxHash = 2;
-    string maxInvestmentPerUser = 3;
-    string minInvestmentPerUser = 4;
-    string investmentCap = 5;
-    string endInvestmentTime = 6;
+    string from_tx_hash = 1;
+    string organization_tx_hash = 2;
+    string max_investment_per_user = 3;
+    string min_investment_per_user = 4;
+    string investment_cap = 5;
+    string end_investment_time = 6;
 }
 
 ////////// Generic messages ////////////////
@@ -110,17 +110,17 @@ service BlockchainService {
 
     // Cooperative
 
-    rpc generateAddWalletTx(GenerateAddWalletTxRequest) returns (RawTxResponse);
-    rpc isWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
+    rpc GenerateAddWalletTx(GenerateAddWalletTxRequest) returns (RawTxResponse);
+    rpc IsWalletActive(WalletActiveRequest) returns (WalletActiveResponse);
 
 
     // EUR
 
-    rpc generateMintTx(GenerateMintTxRequest) returns (RawTxResponse);
-    rpc generateBurnFromTx(GenerateBurnFromTxRequest) returns (RawTxResponse);
-    rpc generateApproveWithdrawTx(GenerateApproveWithdrawTxRequest) returns (RawTxResponse);
-    rpc generateInvestTx(GenerateInvestTxRequest) returns (RawTxResponse);
-    rpc getBalance(BalanceRequest) returns (BalanceResponse);
+    rpc GenerateMintTx(GenerateMintTxRequest) returns (RawTxResponse);
+    rpc GenerateBurnFromTx(GenerateBurnFromTxRequest) returns (RawTxResponse);
+    rpc GenerateApproveWithdrawTx(GenerateApproveWithdrawTxRequest) returns (RawTxResponse);
+    rpc GenerateInvestTx(GenerateInvestTxRequest) returns (RawTxResponse);
+    rpc GetBalance(BalanceRequest) returns (BalanceResponse);
 
 
     // Organization
@@ -128,17 +128,17 @@ service BlockchainService {
 
     // Project
 
-    rpc generateStartRevenueSharesPayoutTx(GenerateStartRevenueSharesPayoutTxRequest) returns (RawTxResponse);
+    rpc GenerateStartRevenueSharesPayoutTx(GenerateStartRevenueSharesPayoutTxRequest) returns (RawTxResponse);
 
     
     // Contract create
     
-    rpc generateCreateOrganizationTx(GenerateCreateOrganizationTxRequest) returns (RawTxResponse);
-    rpc generateCreateProjectTx(GenerateCreateProjectTxRequest) returns (RawTxResponse);
+    rpc GenerateCreateOrganizationTx(GenerateCreateOrganizationTxRequest) returns (RawTxResponse);
+    rpc GenerateCreateProjectTx(GenerateCreateProjectTxRequest) returns (RawTxResponse);
 
     
     // Transactions
 
-    rpc postTransaction(PostTxRequest) returns (PostTxResponse);
+    rpc PostTransaction(PostTxRequest) returns (PostTxResponse);
 
 }
