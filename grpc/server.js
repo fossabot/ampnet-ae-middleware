@@ -25,11 +25,12 @@ let client = require('../ae/client')
 let contracts = require('../ae/contracts')
 
 // grpc service definition
-let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain-service.proto'))
+let protoDefinition = protoLoader.loadSync(path.resolve(__dirname, '../proto/blockchain_service.proto'))
 let packageDefinition = grpc.loadPackageDefinition(protoDefinition).com.ampnet.crowdfunding.proto
 
 // holds running grpc server instance
-let server
+let grpcServer
+let httpServer
 
 module.exports = {
     start: async function() {
@@ -51,10 +52,10 @@ module.exports = {
         await contracts.compile()
 
         // Initialize Grpc server
-        server = new grpc.Server();
+        grpcServer = new grpc.Server();
 
         // gRPC services
-        server.addService(packageDefinition.BlockchainService.service, {
+        grpcServer.addService(packageDefinition.BlockchainService.service, {
             generateAddWalletTx: coopSvc.addWallet,
             isWalletActive: coopSvc.walletActive,
             generateMintTx: eurSvc.mint,
@@ -68,15 +69,16 @@ module.exports = {
             postTransaction: txSvc.postTransaction
         });
 
-        server.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
-        await server.start()
+        grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
+        await grpcServer.start()
 
-        expr = express()
+        let expr = express()
         expr.use(actuator())
-        expr.listen(config.get().http.port)
+        httpServer = expr.listen(config.get().http.port)
     },
     stop: async function() {
-        return server.forceShutdown()
+        await httpServer.close()
+        return grpcServer.forceShutdown()
     }
 }
 
