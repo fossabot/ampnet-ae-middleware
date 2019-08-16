@@ -85,23 +85,32 @@ async function getWalletTypeOrThrow(address) {
     })
 }
 
-async function getPortfolio(walletTxHash) {
-    let wallet = (await findByHashOrThrow(walletTxHash)).wallet
+async function getPortfolio(wallet) {
+    let portfolio = new Map()
+
     let records = await get({
         from_wallet: wallet,
         type: TxType.INVEST
     })
-    let portfolio = records.map(investmentRecord => {
-        return new Promise(resolve => {
-            findByWalletOrThrow(investmentRecord.to_wallet).then(tx => {
-                resolve({
-                    projectTxHash: tx.hash,
-                    amount: investmentRecord.amount
-                })
-            })
-        })
+    let recordsLength = records.length
+
+    for (var i = 0; i < recordsLength; i++) {
+        tx = await findByWalletOrThrow(records[i].to_wallet)
+        project = tx.hash
+        amount = records[i].amount
+        if (portfolio.has(project)) { 
+            portfolio.set(project, Number(portfolio.get(project)) + Number(amount)).toString()
+        } else {
+            portfolio.set(project, amount)
+        }
+    }
+
+    return Array.from(portfolio).map(entry => {
+        return {
+            projectTxHash: entry[0],
+            amount: entry[1]
+        }
     })
-    return Promise.all(portfolio)
 }
 
 async function saveHash(hash) {

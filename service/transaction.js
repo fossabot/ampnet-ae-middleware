@@ -32,7 +32,7 @@ async function getPortfolio(call, callback) {
     try {
         let tx = await repo.findByHashOrThrow(call.request.txHash)
         console.log(`Address represented by given hash: ${tx.wallet}\n`)
-        let portfolio = await repo.getPortfolio(call.request.txHash)
+        let portfolio = await repo.getPortfolio(tx.wallet)
         console.log("Successfully fetched portfolio: ", portfolio)
         callback(null, { portfolio: portfolio })
     } catch (error) {

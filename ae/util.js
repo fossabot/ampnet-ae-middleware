@@ -4,11 +4,13 @@ let { BigNumber } = require('bignumber.js')
 const tokenFactor = 10000000000000000n
 
 function enforceAkPrefix(address) {
-    return address.replace("ct_", "ak_")
+    if (address.startsWith("ct_")) { return address.replace("ct_", "ak_") }
+    else { return address }
 }
 
 function enforceCtPrefix(address) {
-    return address.replace("ak_", "ct_")
+    if (address.startsWith("ak_")) { return address.replace("ak_", "ct_") }
+    else { return address }
 }
 
 function decodeAddress(data) {
