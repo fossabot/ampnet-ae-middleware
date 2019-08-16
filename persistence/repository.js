@@ -85,34 +85,6 @@ async function getWalletTypeOrThrow(address) {
     })
 }
 
-async function getPortfolio(wallet) {
-    let portfolio = new Map()
-
-    let records = await get({
-        from_wallet: wallet,
-        type: TxType.INVEST
-    })
-    let recordsLength = records.length
-
-    for (var i = 0; i < recordsLength; i++) {
-        tx = await findByWalletOrThrow(records[i].to_wallet)
-        project = tx.hash
-        amount = records[i].amount
-        if (portfolio.has(project)) { 
-            portfolio.set(project, Number(portfolio.get(project)) + Number(amount)).toString()
-        } else {
-            portfolio.set(project, amount)
-        }
-    }
-
-    return Array.from(portfolio).map(entry => {
-        return {
-            projectTxHash: entry[0],
-            amount: entry[1]
-        }
-    })
-}
-
 async function saveHash(hash) {
     return new Promise(resolve => {
         knex('transaction')
@@ -140,6 +112,33 @@ async function saveTransaction(tx) {
     })
 }
 
+async function get(filter) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where(filter)
+            .then(records => {
+                resolve(records)
+            })
+            .catch(error => {
+                console.log("save tx error", error)
+            })
+    })
+}
+
+async function getUserTransactions(wallet) {
+    return new Promise(resolve => {
+        knex('transaction')
+            .where({ from_wallet: wallet })
+            .orWhere({ to_wallet: wallet })
+            .then(records => {
+                resolve(records)
+            })
+            .catch(error => {
+                console.log("get user transactions error", error)
+            })
+    })
+}
+
 async function update(hash, data) {
     return new Promise(resolve => {
         knex('transaction')
@@ -159,24 +158,12 @@ async function runMigrations() {
     return knex.migrate.latest()
 }
 
-async function get(filter) {
-    return new Promise(resolve => {
-        knex('transaction')
-            .where(filter)
-            .then(records => {
-                resolve(records)
-            })
-            .catch(error => {
-                console.log("save tx error", error)
-            })
-    })
-}
-
 module.exports = {
     findByHashOrThrow,
     findByWalletOrThrow,
     getWalletTypeOrThrow,
-    getPortfolio,
+    get,
+    getUserTransactions,
     saveTransaction,
     update,
     saveHash,

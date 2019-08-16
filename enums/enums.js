@@ -83,6 +83,16 @@ function fromEvent(event) {
     }
 }
 
+function txTypeToGrpc(type) {
+    switch (type) {
+        case TxType.DEPOSIT:        return 0
+        case TxType.WITHDRAW:       return 1
+        case TxType.INVEST:         return 2
+        case TxType.SHARE_PAYOUT:   return 3
+        default: throw new Error(`Cannot convert ${type} to GRPC type!`)
+    }
+}
+
 module.exports = {
     TxType,
     TxState,
@@ -93,5 +103,6 @@ module.exports = {
     supervisorStatusValues,
     walletTypeValues,
     functions,
-    fromEvent
+    fromEvent,
+    txTypeToGrpc
 }
