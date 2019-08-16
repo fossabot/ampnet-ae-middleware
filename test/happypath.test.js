@@ -111,6 +111,11 @@ describe('Main tests', function() {
         let bobBalanceAfterRevenuePayout = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterRevenuePayout, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount + revenueToPayout)
         
+        let bobPortfolio = await grpcClient.getPortfolio(addBobWalletTxHash)
+        assert.strictEqual(bobPortfolio.length, 1, `Expected fetched Bob portfolio to contain 1 investment`)
+        assert.strictEqual(bobPortfolio[0].projectTxHash, addProjWalletTxHash)
+        assert.equal(bobPortfolio[0].amount, bobInvestmentAmount)
+
         let expectedRecordCount = 12
         let allRecords = await db.getAll()
         let recordsCount = allRecords.length
