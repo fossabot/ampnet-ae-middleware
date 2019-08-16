@@ -32,11 +32,86 @@ async function getPortfolio(call, callback) {
     try {
         let tx = await repo.findByHashOrThrow(call.request.txHash)
         console.log(`Address represented by given hash: ${tx.wallet}\n`)
-        let portfolio = await repo.getPortfolio(tx.wallet)
+        
+        let portfolioMap = new Map()
+        let records = await repo.get({
+            from_wallet: tx.wallet,
+            type: TxType.INVEST
+        })
+        let recordsLength = records.length
+
+        for (var i = 0; i < recordsLength; i++) {
+            tx = await repo.findByWalletOrThrow(records[i].to_wallet)
+            project = tx.hash
+            amount = records[i].amount
+            if (portfolioMap.has(project)) { 
+                portfolioMap.set(project, Number(portfolioMap.get(project)) + Number(amount)).toString()
+            } else {
+                portfolioMap.set(project, amount)
+            }
+        }
+
+        let portfolio = Array.from(portfolioMap).map(entry => {
+            return {
+                projectTxHash: entry[0],
+                amount: entry[1]
+            }
+        })
         console.log("Successfully fetched portfolio: ", portfolio)
         callback(null, { portfolio: portfolio })
     } catch (error) {
         console.log(`Error while fetching portfolio: ${error}`)
+        err.handle(error, callback)
+    }
+}
+
+async function getTransactions(call, callback) {
+    console.log(`\nReceived request to fetch transactions for user with wallet txHash ${call.request.txHash}`)
+    try {
+        let tx = await repo.findByHashOrThrow(call.request.txHash)
+        console.log(`Address represented by given hash: ${tx.wallet}\n`)
+        let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.INVEST, TxType.SHARE_PAYOUT])
+        let transactionsPromisified = (await repo.getUserTransactions(tx.wallet))
+            .filter(r => { return types.has(r.type) }) 
+            .map(r => {
+                switch (r.type) {
+                    case TxType.DEPOSIT:
+                    case TxType.WITHDRAW:
+                        return new Promise(resolve => {
+                            resolve({
+                                amount: r.amount,
+                                type: enums.txTypeToGrpc(r.type)
+                            })
+                        })
+                    case TxType.INVEST:
+                        return new Promise(async (resolve) => {
+                            repo.findByWalletOrThrow(r.to_wallet).then(project => {
+                                resolve({
+                                    fromTxHash: call.request.txHash,
+                                    toTxHash: project.hash,
+                                    amount: r.amount,
+                                    type: enums.txTypeToGrpc(r.type)
+                                })
+                            })
+                        })
+                    case TxType.SHARE_PAYOUT:
+                        return new Promise(async (resolve) => {
+                            repo.findByWalletOrThrow(r.from_wallet).then(project => {
+                                resolve({
+                                    fromTxHash: project.hash,
+                                    toTxHash: call.request.txHash,
+                                    amount: r.amount,
+                                    type: enums.txTypeToGrpc(r.type)
+                                })
+                            })                            
+                        })
+                }
+            })
+        let transactions = await Promise.all(transactionsPromisified)
+        console.log("Successfully fetched user's transactions", transactions)
+        callback(null, { transactions: transactions })
+    } catch (error) {
+        console.log(`Error while fetching transactions: ${error}`)
         err.handle(error, callback)
     }
 }
@@ -316,4 +391,8 @@ async function isWalletActive(wallet) {
     return result.decode()
 }
 
-module.exports = { postTransaction, getPortfolio }
+module.exports = { 
+    postTransaction, 
+    getPortfolio, 
+    getTransactions 
+}

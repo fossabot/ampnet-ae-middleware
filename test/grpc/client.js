@@ -180,5 +180,18 @@ module.exports = {
                 }
             })
         })
+    },
+    getTransactions: async function(txHash) {
+        return new Promise(resolve => {
+            client.getTransactions({
+                txHash: txHash
+            }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.transactions)
+                }
+            })
+        })
     }
 }

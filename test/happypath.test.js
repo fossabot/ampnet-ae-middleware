@@ -2,6 +2,7 @@ let path = require('path')
 let chai = require('chai');
 let assert = chai.assert;
 
+let enums = require('../enums/enums')
 let grpcServer = require('../grpc/server')
 let { TxType, TxState, SupervisorStatus, WalletType } = require('../enums/enums')
 
@@ -115,6 +116,22 @@ describe('Main tests', function() {
         assert.strictEqual(bobPortfolio.length, 1, `Expected fetched Bob portfolio to contain 1 investment`)
         assert.strictEqual(bobPortfolio[0].projectTxHash, addProjWalletTxHash)
         assert.equal(bobPortfolio[0].amount, bobInvestmentAmount)
+        
+        let bobTransactions = await grpcClient.getTransactions(addBobWalletTxHash)
+        assert.strictEqual(bobTransactions.length, 4)
+        
+        let bobTransactionsDeposit = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
+        assert.equal(bobTransactionsDeposit.amount, mintToBobAmount)
+        let bobTransactionsWithdraw = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.WITHDRAW) })[0]
+        assert.equal(bobTransactionsWithdraw.amount, withdrawFromBobAmount)
+        let bobTransactionsInvest = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.INVEST) })[0]
+        assert.strictEqual(bobTransactionsInvest.fromTxHash, addBobWalletTxHash)
+        assert.strictEqual(bobTransactionsInvest.toTxHash, addProjWalletTxHash)
+        assert.equal(bobTransactionsInvest.amount, bobInvestmentAmount)
+        let bobTransactionsPayout = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.SHARE_PAYOUT) })[0]
+        assert.strictEqual(bobTransactionsPayout.fromTxHash, addProjWalletTxHash)
+        assert.strictEqual(bobTransactionsPayout.toTxHash, addBobWalletTxHash)
+        assert.equal(bobTransactionsPayout.amount, revenueToPayout)
 
         let expectedRecordCount = 12
         let allRecords = await db.getAll()
