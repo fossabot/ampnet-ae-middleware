@@ -2,6 +2,7 @@ let config = require('../config')
 let client = require('./client')
 let contracts = require('./contracts')
 let functions = require('../enums/enums').functions
+let util = require('./util')
 
 async function encodeAddWallet(wallet) {
     return contracts.getCoopCompiled().encodeCall(functions.coop.addWallet, [ wallet ])
@@ -22,6 +23,29 @@ async function encodeCreateProject(org, minInvestment, maxInvestment, investment
             endsAt
         ]
     )
+}
+
+async function encodeGetProjectInfo() {
+    return contracts.getProjCompiled().encodeCall(functions.proj.getInfo, [ ])
+}
+
+async function decodeGetProjectInfoResult(result) {
+    let decoded = await client.instance().contractDecodeData(
+        contracts.projSource,
+        functions.proj.getInfo,
+        result.returnValue,
+        result.returnType
+    )
+    return {
+        project: result.contractId,
+        info: {
+            totalFundsRaised: util.tokenToEur(decoded[0]),
+            investmentCap: util.tokenToEur(decoded[1]),
+            minPerUserInvestment: util.tokenToEur(decoded[2]),
+            maxPerUserInvestment: util.tokenToEur(decoded[3]),
+            endsAt: (new Date(decoded[4])).toTimeString()
+        }
+    }
 }
 
 async function encodeStartRevenueSharesPayout(revenue) {
@@ -65,6 +89,8 @@ module.exports = {
     },
     proj: {
         encodeCreateProject,
+        encodeGetProjectInfo,
+        decodeGetProjectInfoResult,
         encodeStartRevenueSharesPayout
     },
     decodeDataBySource,

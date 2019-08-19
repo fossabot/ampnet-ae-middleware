@@ -4,6 +4,7 @@ let contracts = require('../ae/contracts')
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
+let config = require('../config')
 
 async function createProject(call, callback) {
     console.log(`\nReceived request to generate createProject transaction.\Caller: ${call.request.fromTxHash}`)
@@ -64,6 +65,55 @@ async function startRevenueSharesPayout(call, callback) {
     }
 }
 
+async function getInfo(call, callback) {
+    try {
+        console.log(`\nReceived request to fetch statuses for projects: ${call.request.projectTxHashes}`)
+        let walletToHashMap = new Map()
+        let projectWallets = await Promise.all(
+            call.request.projectTxHashes.map(async (projectTxHash) => {
+                return new Promise(resolve => {
+                    repo.findByHashOrThrow(projectTxHash).then(tx => { 
+                        walletToHashMap.set(tx.wallet, projectTxHash)
+                        resolve(tx.wallet) 
+                    })
+                })
+            })
+        )        
+        console.log(`Addresses represented by given hashes: ${projectWallets}`)
+        
+        let callData = await codec.proj.encodeGetProjectInfo()
+        let projectInfoTransactions = await Promise.all(
+            projectWallets.map(wallet => {
+                return client.instance().contractCallTx({
+                    callerId: config.get().supervisor.publicKey,
+                    contractId: util.enforceCtPrefix(wallet),
+                    abiVersion: 1,
+                    amount: 0,
+                    gas: 10000,
+                    callData
+                })
+            })
+        )
+        console.log(`Generated list of transactions: ${projectInfoTransactions}`)
+        
+        let results = await Promise.all(
+            (await client.instance().txDryRun(projectInfoTransactions)).results.map(callResult => {
+                return codec.proj.decodeGetProjectInfoResult(callResult.callObj)  
+            })
+        )
+        console.log(`Executed list of transactions: ${results}`)
 
+        let response = results.map(result => {
+            return Object.assign(result.info, {
+                projectTxHash: walletToHashMap.get(util.enforceAkPrefix(result.project))
+            })
+        })
+        console.log(`Mapped results to response data: ${response}`)
+        callback(null, { projects: response })
+    } catch(error) {
+        console.log(`Error while fetching statuses for given projects list: ${error}`)
+        err.handle(error, callback)
+    }
+}
 
-module.exports = { createProject, startRevenueSharesPayout }
+module.exports = { createProject, startRevenueSharesPayout, getInfo }

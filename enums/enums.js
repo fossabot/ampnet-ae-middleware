@@ -65,7 +65,8 @@ let functions = {
     proj: {
         invest: "invest",
         startRevenueSharesPayout: "start_revenue_shares_payout",
-        payoutRevenueSharesBatch: "payout_revenue_shares"
+        payoutRevenueSharesBatch: "payout_revenue_shares",
+        getInfo: "get_info"
     }
 }
 
