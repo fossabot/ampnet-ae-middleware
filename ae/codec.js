@@ -43,7 +43,7 @@ async function decodeGetProjectInfoResult(result) {
             investmentCap: util.tokenToEur(decoded[1]),
             minPerUserInvestment: util.tokenToEur(decoded[2]),
             maxPerUserInvestment: util.tokenToEur(decoded[3]),
-            endsAt: (new Date(decoded[4])).toTimeString()
+            endsAt: decoded[4]
         }
     }
 }

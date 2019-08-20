@@ -41,8 +41,8 @@ describe('Main tests', function() {
         let createOrgTx = await grpcClient.generateCreateOrganizationTx(addBobWalletTxHash)
         let createOrgTxSigned = await clients.bob().signTransaction(createOrgTx)
         let createOrgTxHash = await grpcClient.postTransaction(createOrgTxSigned)
+        
         await util.waitMined(createOrgTxHash)
-
         let addOrgWalletTx = await grpcClient.generateAddWalletTx(createOrgTxHash)
         let addOrgWalletTxSigned = await clients.owner().signTransaction(addOrgWalletTx)
         let addOrgWalletTxHash = await grpcClient.postTransaction(addOrgWalletTxSigned)
