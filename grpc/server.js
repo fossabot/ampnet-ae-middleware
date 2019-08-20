@@ -68,7 +68,8 @@ module.exports = {
             generateStartRevenueSharesPayoutTx: projSvc.startRevenueSharesPayout,
             postTransaction: txSvc.postTransaction,
             getPortfolio: txSvc.getPortfolio,
-            getTransactions: txSvc.getTransactions
+            getTransactions: txSvc.getTransactions,
+            getProjectsInfo: projSvc.getInfo
         });
 
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());

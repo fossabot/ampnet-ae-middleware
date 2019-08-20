@@ -159,6 +159,13 @@ contract Project =
         recursive_revenue_batch_payout(fromIndex, toIndex, revenue)
         state.payoutInProcess
 
+    entrypoint get_info() : (int, int, int, int, int) = 
+        (state.totalFundsRaised, 
+         state.investmentCap, 
+         state.minInvestmentPerUser, 
+         state.maxInvestmentPerUser, 
+         state.endsAt)
+
     entrypoint get_investment() : int = state.investments[Call.caller = 0]
 
     entrypoint get_investments() : map(address, int) = state.investments

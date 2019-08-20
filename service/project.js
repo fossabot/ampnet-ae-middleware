@@ -4,6 +4,7 @@ let contracts = require('../ae/contracts')
 let repo = require('../persistence/repository')
 let util = require('../ae/util')
 let err = require('../error/errors')
+let functions = require('../enums/enums').functions
 
 async function createProject(call, callback) {
     console.log(`\nReceived request to generate createProject transaction.\Caller: ${call.request.fromTxHash}`)
@@ -64,6 +65,52 @@ async function startRevenueSharesPayout(call, callback) {
     }
 }
 
+async function getInfo(call, callback) {
+    try {
+        console.log(`\nReceived request to fetch statuses for projects: ${call.request.projectTxHashes}`)
+        let walletToHashMap = new Map()
+        let projectWallets = await Promise.all(
+            call.request.projectTxHashes.map(async (projectTxHash) => {
+                return new Promise(resolve => {
+                    repo.findByHashOrThrow(projectTxHash).then(tx => { 
+                        walletToHashMap.set(tx.wallet, projectTxHash)
+                        resolve(tx.wallet) 
+                    })
+                })
+            })
+        )        
+        console.log(`Addresses represented by given hashes: ${projectWallets}`)
 
+        let projectInfoResults = await Promise.all(
+            projectWallets.map(wallet => {
+                return new Promise(resolve => {
+                    client.instance().contractCallStatic(
+                        contracts.projSource,
+                        util.enforceCtPrefix(wallet),
+                        functions.proj.getInfo,
+                        [ ]
+                    ).then(result => {
+                        result.decode().then(decoded => {
+                            resolve({
+                                projectTxHash: walletToHashMap.get(wallet),
+                                totalFundsRaised: util.tokenToEur(decoded[0]),
+                                investmentCap: util.tokenToEur(decoded[1]),
+                                minPerUserInvestment: util.tokenToEur(decoded[2]),
+                                maxPerUserInvestment: util.tokenToEur(decoded[3]),
+                                endsAt: decoded[4]
+                            })
+                        })
+                    })
+                })
+            })
+        )
+        console.log("Projects info response", projectInfoResults)
 
-module.exports = { createProject, startRevenueSharesPayout }
+        callback(null, { projects: projectInfoResults })
+    } catch(error) {
+        console.log(`Error while fetching statuses for given projects list: ${error}`)
+        err.handle(error, callback)
+    }
+}
+
+module.exports = { createProject, startRevenueSharesPayout, getInfo }

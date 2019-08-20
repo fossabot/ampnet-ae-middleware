@@ -63,6 +63,22 @@ message GenerateStartRevenueSharesPayoutTxRequest {
     string revenue = 3;
 }
 
+message GetProjectsInfoRequest {
+    repeated string project_tx_hashes = 1;
+}
+
+message GetProjectsInfoResponse {
+    message ProjectInfo {
+        string project_tx_hash = 1;
+        string total_funds_raised = 2;
+        string investment_cap = 3;
+        string min_per_user_investment = 4;
+        string max_per_user_investment = 5;
+        string ends_at = 6;
+    }
+    repeated ProjectInfo projects = 1;
+}
+
 
 ////////// Transaction messages //////////
 
@@ -157,7 +173,7 @@ service BlockchainService {
     // Project
 
     rpc GenerateStartRevenueSharesPayoutTx(GenerateStartRevenueSharesPayoutTxRequest) returns (RawTxResponse);
-
+    rpc GetProjectsInfo(GetProjectsInfoRequest) returns (GetProjectsInfoResponse);
     
     // Contract create
     
