@@ -174,13 +174,13 @@ function getGrpc() {
         }
     }
     return {
-        url: "0.0.0.0:50055"
+        url: "0.0.0.0:8224"
     }
 }
 
 function getHttp() {
     return {
-        port: process.env.HTTP_PORT || 50056
+        port: process.env.HTTP_PORT || 8124
     }
 }
 
