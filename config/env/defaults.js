@@ -29,7 +29,8 @@ async function get() {
         contracts: contracts,
         grpc: grpc,
         http: http,
-        db: db
+        db: db,
+        giftAmount: process.env.GIFT_AMOUNT || 0.3
     }
 }
 

@@ -16,7 +16,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "NODE_ENV=local ./node_modules/mocha/bin/mocha --timeout 120000"
+    "test": "NODE_ENV=local GIFT_AMOUNT=0.3 ./node_modules/mocha/bin/mocha --timeout 120000"
   },
   "devDependencies": {
     "chai": "^4.2.0",

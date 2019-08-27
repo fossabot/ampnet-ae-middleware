@@ -149,9 +149,14 @@ async function handleSupervisorAction(tx) {
     switch (tx.type) {
         case TxType.WALLET_CREATE:
             if (tx.wallet_type == WalletType.USER) {
-                await client.instance().spend(300000000000000000, tx.wallet).catch(console.log)
-                console.log(`Transferred 0.3AE to user with wallet ${tx.wallet} (welcome gift)`)
-                await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
+                giftAmountAe = config.get().giftAmount
+                if (giftAmountAe > 0) {
+                    await client.instance().spend(giftAmountAe * 1000000000000000000, tx.wallet).catch(console.log)
+                    console.log(`Transferred ${giftAmountAe}AE to user with wallet ${tx.wallet} (welcome gift)`)
+                    await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
+                } else {
+                    console.log(`Not sending welcome gift. (amount in config set to 0)`)
+                }
             }
             break
         case TxType.APPROVE_INVESTMENT:
