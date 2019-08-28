@@ -87,9 +87,6 @@ describe('Main tests', function() {
         let addProjWalletTxSigned = await clients.owner().signTransaction(addProjWalletTx)
         let addProjWalletTxHash = await grpcClient.postTransaction(addProjWalletTxSigned)
         await util.waitMined(addProjWalletTxHash)
-
-        let projectsInfo = await grpcClient.getProjectsInfo([addProjWalletTxHash])
-        console.log("projectsInfo", projectsInfo)
         
         let bobInvestmentAmount = 100000
         let investTx = await grpcClient.generateInvestTx(addBobWalletTxHash, addProjWalletTxHash, bobInvestmentAmount)
@@ -125,16 +122,26 @@ describe('Main tests', function() {
         
         let bobTransactionsDeposit = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.DEPOSIT) })[0]
         assert.equal(bobTransactionsDeposit.amount, mintToBobAmount)
+        assert.exists(bobTransactionsDeposit.date)
         let bobTransactionsWithdraw = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.WITHDRAW) })[0]
         assert.equal(bobTransactionsWithdraw.amount, withdrawFromBobAmount)
+        assert.exists(bobTransactionsWithdraw.date)
         let bobTransactionsInvest = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.INVEST) })[0]
         assert.strictEqual(bobTransactionsInvest.fromTxHash, addBobWalletTxHash)
         assert.strictEqual(bobTransactionsInvest.toTxHash, addProjWalletTxHash)
         assert.equal(bobTransactionsInvest.amount, bobInvestmentAmount)
+        assert.exists(bobTransactionsInvest.date)
         let bobTransactionsPayout = bobTransactions.filter(t => { return t.type == enums.txTypeToGrpc(TxType.SHARE_PAYOUT) })[0]
         assert.strictEqual(bobTransactionsPayout.fromTxHash, addProjWalletTxHash)
         assert.strictEqual(bobTransactionsPayout.toTxHash, addBobWalletTxHash)
         assert.equal(bobTransactionsPayout.amount, revenueToPayout)
+        assert.exists(bobTransactionsPayout.date)
+
+        let bobInvestmentsInProject = await grpcClient.getInvestmentsInProject(addBobWalletTxHash, addProjWalletTxHash)
+        assert.strictEqual(bobInvestmentsInProject.length, 1)
+        let bobInvestmentInProject = bobInvestmentsInProject[0]
+        assert.equal(bobInvestmentInProject.amount, bobInvestmentAmount)
+        assert.exists(bobInvestmentInProject.date)
 
         let expectedRecordCount = 12
         let allRecords = await db.getAll()

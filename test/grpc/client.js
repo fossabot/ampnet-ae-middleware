@@ -206,5 +206,19 @@ module.exports = {
                 }
             })
         })
+    },
+    getInvestmentsInProject: async function(fromTxHash, projectTxHash) {
+        return new Promise(resolve => {
+            client.getInvestmentsInProject({
+                fromTxHash: fromTxHash,
+                projectTxHash: projectTxHash
+            }, (err, result) => {
+                if (err != null) {
+                    resolve(err)
+                } else {
+                    resolve(result.transactions)
+                }
+            })
+        })
     }
 }

@@ -36,7 +36,8 @@ async function getPortfolio(call, callback) {
         let portfolioMap = new Map()
         let records = await repo.get({
             from_wallet: tx.wallet,
-            type: TxType.INVEST
+            type: TxType.INVEST,
+            state: TxState.MINED
         })
         let recordsLength = records.length
 
@@ -72,7 +73,7 @@ async function getTransactions(call, callback) {
         console.log(`Address represented by given hash: ${tx.wallet}\n`)
         let types = new Set([TxType.DEPOSIT, TxType.WITHDRAW, TxType.INVEST, TxType.SHARE_PAYOUT])
         let transactionsPromisified = (await repo.getUserTransactions(tx.wallet))
-            .filter(r => { return types.has(r.type) }) 
+            .filter(r => { return types.has(r.type) && r.state == TxState.MINED }) 
             .map(r => {
                 switch (r.type) {
                     case TxType.DEPOSIT:
@@ -80,7 +81,8 @@ async function getTransactions(call, callback) {
                         return new Promise(resolve => {
                             resolve({
                                 amount: r.amount,
-                                type: enums.txTypeToGrpc(r.type)
+                                type: enums.txTypeToGrpc(r.type),
+                                date: (new Date(r.processed_at)).getTime()
                             })
                         })
                     case TxType.INVEST:
@@ -90,7 +92,8 @@ async function getTransactions(call, callback) {
                                     fromTxHash: call.request.txHash,
                                     toTxHash: project.hash,
                                     amount: r.amount,
-                                    type: enums.txTypeToGrpc(r.type)
+                                    type: enums.txTypeToGrpc(r.type),
+                                    date: (new Date(r.processed_at)).getTime()
                                 })
                             })
                         })
@@ -101,7 +104,8 @@ async function getTransactions(call, callback) {
                                     fromTxHash: project.hash,
                                     toTxHash: call.request.txHash,
                                     amount: r.amount,
-                                    type: enums.txTypeToGrpc(r.type)
+                                    type: enums.txTypeToGrpc(r.type),
+                                    date: (new Date(r.processed_at)).getTime()
                                 })
                             })                            
                         })
@@ -109,6 +113,31 @@ async function getTransactions(call, callback) {
             })
         let transactions = await Promise.all(transactionsPromisified)
         console.log("Successfully fetched user's transactions", transactions)
+        callback(null, { transactions: transactions })
+    } catch (error) {
+        console.log(`Error while fetching transactions: ${error}`)
+        err.handle(error, callback)
+    }
+}
+
+async function getInvestmentsInProject(call, callback) {
+    console.log(`\nReceived request to fetch investments in project ${call.request.projectTxHash} for user with wallet ${call.request.fromTxHash}`)
+    try {
+        let investorTx = await repo.findByHashOrThrow(call.request.fromTxHash)
+        console.log(`Investor wallet represented by given hash: ${investorTx.wallet}\n`)
+        let projectTx = await repo.findByHashOrThrow(call.request.projectTxHash)
+        console.log(`Project address represented by given hash: ${projectTx.wallet}\n`)
+        let transactions = (await repo.getUserTransactions(investorTx.wallet))
+            .filter(tx => {
+                return tx.type == TxType.INVEST && tx.to_wallet == projectTx.wallet
+            })
+            .map(tx => {
+                return {
+                    amount: tx.amount,
+                    date: (new Date(tx.processed_at)).getTime()
+                }
+            })
+        console.log(`Successfully fetched transactions`, transactions)
         callback(null, { transactions: transactions })
     } catch (error) {
         console.log(`Error while fetching transactions: ${error}`)
@@ -399,5 +428,6 @@ async function isWalletActive(wallet) {
 module.exports = { 
     postTransaction, 
     getPortfolio, 
-    getTransactions 
+    getTransactions,
+    getInvestmentsInProject
 }
