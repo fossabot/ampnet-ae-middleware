@@ -4,6 +4,7 @@ let protoLoader = require('@grpc/proto-loader')
 let grpc = require('grpc')
 let express = require('express')
 let actuator = require('express-actuator')
+let prometheus = require('prom-client')
 
 // config
 let config = require('../config')
@@ -35,18 +36,20 @@ let httpServer
 module.exports = {
     start: async function() {
         // Initialize config
-        console.log("Initializing config")
+        console.log("Initializing config...")
         await config.init()
         console.log("Config initialized")
         console.log(config.get())
 
         // Initialize database and run migrations
-        console.log("Initializing repo")
+        console.log("Initializing repo...")
         repo.init()
         console.log("Repo initialized")
-        console.log("Running migrations")
+
+        console.log("Running migrations...")
         await repo.runMigrations()
         console.log("Migrations processed")
+
         // Initiallize Aeternity client
         await client.init()
         await contracts.compile()
@@ -75,10 +78,19 @@ module.exports = {
 
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
         await grpcServer.start()
+        console.log(`GRPC server started at ${config.get().grpc.url}`)
 
         let expr = express()
         expr.use(actuator())
+        expr.get('/prometheus', (req, res) => {
+            res.set('Content-Type', prometheus.register.contentType)
+            res.end(prometheus.register.metrics())
+        })
+        prometheus.collectDefaultMetrics()
         httpServer = expr.listen(config.get().http.port)
+        console.log(`HTTP server started at port ${config.get().http.port}.`)
+        console.log(`Prometheus metrics available at /prometheus`)
+        console.log(`Health info and basic metrics available at /info and /metrics`)
     },
     stop: async function() {
         await httpServer.close()
