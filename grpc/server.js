@@ -1,13 +1,21 @@
 // requirements
 let path = require('path')
 let protoLoader = require('@grpc/proto-loader')
-let grpc = require('grpc')
+let grpc = require('grpc-middleware')
 let express = require('express')
 let actuator = require('express-actuator')
 let prometheus = require('prom-client')
+let cls = require('cls-hooked')
+let uuid = require('uuid/v4')
+let interceptors = require('@hpidcock/node-grpc-interceptors')
+
+// initialize global namespace
+let namespace = require('../enums/enums').ClsNamespace
+let clsNamespace = cls.createNamespace(namespace)
 
 // config
 let config = require('../config')
+let logger = require('../logger')(module)
 
 // services
 let txSvc = require('../service/transaction')
@@ -36,26 +44,29 @@ let httpServer
 module.exports = {
     start: async function() {
         // Initialize config
-        console.log("Initializing config...")
         await config.init()
-        console.log("Config initialized")
-        console.log(config.get())
+        logger.info('Config initialized: \n%o', config.get())
 
         // Initialize database and run migrations
-        console.log("Initializing repo...")
         repo.init()
-        console.log("Repo initialized")
-
-        console.log("Running migrations...")
+        logger.info('Repository initialized.')
         await repo.runMigrations()
-        console.log("Migrations processed")
+        logger.info('Migrations processed.')
 
         // Initiallize Aeternity client
         await client.init()
+        logger.info('Aeternity client initialized.')
         await contracts.compile()
+        logger.info('Contracts compiled.')
 
         // Initialize Grpc server
-        grpcServer = new grpc.Server();
+        grpcServer = interceptors.serverProxy(new grpc.Server())
+        grpcServer.use((context, next) => {
+            clsNamespace.run(() => {
+                clsNamespace.set('traceID', uuid())
+                next()
+            })
+        })
 
         // gRPC services
         grpcServer.addService(packageDefinition.BlockchainService.service, {
@@ -78,7 +89,7 @@ module.exports = {
 
         grpcServer.bind(config.get().grpc.url, grpc.ServerCredentials.createInsecure());
         await grpcServer.start()
-        console.log(`GRPC server started at ${config.get().grpc.url}`)
+        logger.info(`GRPC server started at ${config.get().grpc.url}`)
 
         let expr = express()
         expr.use(actuator())
@@ -88,16 +99,12 @@ module.exports = {
         })
         prometheus.collectDefaultMetrics()
         httpServer = expr.listen(config.get().http.port)
-        console.log(`HTTP server started at port ${config.get().http.port}.`)
-        console.log(`Prometheus metrics available at /prometheus`)
-        console.log(`Health info and basic metrics available at /info and /metrics`)
+        logger.info(`HTTP server started at port ${config.get().http.port}`)
+        logger.info(`Prometheus metrics available at /prometheus`)
+        logger.info(`Health info and basic metrics available at /info and /metrics`)
     },
     stop: async function() {
         await httpServer.close()
         return grpcServer.forceShutdown()
     }
 }
-
-
-
-

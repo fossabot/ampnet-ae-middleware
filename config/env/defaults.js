@@ -1,13 +1,10 @@
 let path = require('path')
 
 let { Universal: Ae } = require('@aeternity/aepp-sdk')
-let contracts = require('../../ae/contracts')
 
-let Environment = {
-    LOCAL: "local",
-    TESTNET: "testnet",
-    MAINNET: "mainnet"
-}
+let contracts = require('../../ae/contracts')
+let Environment = require('../../enums/enums').Environment
+let logger = require('../../logger')(module)
 
 async function get() {
     process.env.NODE_ENV = process.env.NODE_ENV || Environment.LOCAL
@@ -101,9 +98,9 @@ async function getContracts(node, supervisorKeypair) {
         compilerUrl: node.compilerUrl
     })
     if (process.env.COOP_ADDRESS && process.env.EUR_ADDRESS) {
-        console.log("Base contracts pre-deployed.")
-        console.log(`Coop: ${process.env.COOP_ADDRESS}`)
-        console.log(`EUR: ${process.env.EUR_ADDRESS}`)
+        logger.info("Base contracts pre-deployed.")
+        logger.info(`Coop: ${process.env.COOP_ADDRESS}`)
+        logger.info(`EUR: ${process.env.EUR_ADDRESS}`)
         coopInstance = await client.getContractInstance(contracts.coopSource, {
             contractAddress: process.env.COOP_ADDRESS
         })
@@ -114,8 +111,8 @@ async function getContracts(node, supervisorKeypair) {
         eurOwner = await (await eurInstance.call('owner', [])).decode()
         contracts.setCoopAddress(process.env.COOP_ADDRESS)
         contracts.setEurAddress(process.env.EUR_ADDRESS)
-        console.log(`Fetched Coop owner: ${coopOwner}`)
-        console.log(`Fetched EUR owner: ${eurOwner}`)
+        logger.info(`Fetched Coop owner: ${coopOwner}`)
+        logger.info(`Fetched EUR owner: ${eurOwner}`)
         return {
             coop: {
                 address: process.env.COOP_ADDRESS,
@@ -127,29 +124,29 @@ async function getContracts(node, supervisorKeypair) {
             }
         }
     } else {
-        console.log("Base contracts not deployed. Starting deployment.")
+        logger.info("Base contracts not deployed. Starting deployment.")
         
         coopInstance = await client.getContractInstance(contracts.coopSource)
         coop = await coopInstance.deploy()
-        console.log(`Coop deployed at: ${coop.address}`)
+        logger.info(`Coop deployed at ${coop.address}`)
 
         eurInstance = await client.getContractInstance(contracts.eurSource)
         eur = await eurInstance.deploy([coop.address])
-        console.log(`EUR deployed at: ${eur.address}`)
+        logger.info(`EUR deployed at ${eur.address}`)
 
         await coopInstance.call('set_token', [eur.address])
-        console.log(`EUR token registered in Coop contract`)
+        logger.info(`EUR token registered in Coop contract`)
  
         if (process.env.COOP_OWNER) {
-            console.log(`Transferring Coop contract ownership to ${process.env.COOP_OWNER}`)
+            logger.info(`Transferring Coop contract ownership to ${process.env.COOP_OWNER}`)
             coopInstance.call('transfer_ownership', [process.env.COOP_OWNER])
-            console.log(`Ownership transferred.`)
+            logger.info(`Ownership transferred.`)
         }
 
         if (process.env.EUR_OWNER) {
-            console.log(`Transferring EUR contract ownership to ${process.env.EUR_OWNER}`)
+            logger.info(`Transferring EUR contract ownership to ${process.env.EUR_OWNER}`)
             eurInstance.call('transfer_ownership', [process.env.EUR_OWNER])
-            console.log(`Ownership transferred.`)
+            logger.info(`Ownership transferred.`)
         }
 
         coopOwner = await (await coopInstance.call('owner', [])).decode()

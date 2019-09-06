@@ -106,9 +106,6 @@ async function saveTransaction(tx) {
             .then(() => {
                 resolve()
             })
-            .catch(error => {
-                console.log("save tx error", error)
-            })
     })
 }
 
@@ -118,9 +115,6 @@ async function get(filter) {
             .where(filter)
             .then(records => {
                 resolve(records)
-            })
-            .catch(error => {
-                console.log("save tx error", error)
             })
     })
 }
@@ -133,9 +127,6 @@ async function getUserTransactions(wallet) {
             .then(records => {
                 resolve(records)
             })
-            .catch(error => {
-                console.log("get user transactions error", error)
-            })
     })
 }
 
@@ -147,9 +138,6 @@ async function update(hash, data) {
             .update(data)
             .then(rows => {
                 resolve(rows[0])
-            })
-            .catch(error => {
-                console.log("save tx error", error)
             })
     })
 }

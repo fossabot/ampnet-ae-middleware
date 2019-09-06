@@ -1,4 +1,4 @@
-const merge = require('lodash/merge')
+let merge = require('lodash/merge')
 var config
 
 async function init() {
@@ -9,7 +9,7 @@ async function init() {
     }
     // Load our own defaults which will grab from process.env
     config = await require('./env/defaults').get()
-  
+    
     // Only try this if we're not on Production
     if (process.env.NODE_ENV !== 'production') {
         // Load environment-specific settings
@@ -24,7 +24,7 @@ async function init() {
         // merge the config files
         // localConfig will override defaults
         merge({}, config, localConfig);
-    }   
+    }
 }
 
 function get() { return config }
