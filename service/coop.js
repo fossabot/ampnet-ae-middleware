@@ -7,9 +7,10 @@ let util = require('../ae/util')
 let err = require('../error/errors')
 
 let config = require('../config')
+let logger = require('../logger')(module)
 
 async function addWallet(call, callback) {
-    console.log(`\nReceived request to generate addWallet transaction.\nWallet: ${call.request.wallet}`)
+    logger.debug(`Received request to generate addWallet transaction. Wallet: ${call.request.wallet}`)
     try {
         if (call.request.wallet.startsWith("th")) {
             let txInfo = await client.instance().getTxInfo(call.request.wallet)
@@ -27,19 +28,19 @@ async function addWallet(call, callback) {
             gas : 10000,
             callData : callData
         })
-        console.log(`Successfully generated addWallet transaction: ${tx}`)
+        logger.debug('Successfully generated addWallet transaction \n%o', tx)
         callback(null, { tx: tx })
     } catch (error) {
-        console.log(`Error generating addWallet transaction: ${error}`)
+        logger.error(`Error generating addWallet transaction \n%o`, error)
         err.handle(error, callback)
     }
 }
 
 async function walletActive(call, callback) {
-    console.log(`\nReceived request to check is wallet with txHash ${call.request.walletTxHash} active.`)
+    logger.debug(`Received request to check is wallet with txHash ${call.request.walletTxHash} active.`)
     try {
         let tx = await repo.findByHashOrThrow(call.request.walletTxHash)
-        console.log(`Address represented by given hash: ${tx.wallet}\n`)
+        logger.debug(`Address represented by given hash: ${tx.wallet}`)
         let result = await client.instance().contractCallStatic(
             contracts.coopSource, 
             config.get().contracts.coop.address,
@@ -47,10 +48,10 @@ async function walletActive(call, callback) {
             [ tx.wallet ]
         )
         let resultDecoded = await result.decode()
-        console.log(`Wallet active: ${resultDecoded}`)
+        logger.debug(`Wallet active: ${resultDecoded}`)
         callback(null, { active: resultDecoded })
     } catch (error) {
-        console.log(`Error fetching wallet active status: ${error}`)
+        logger.error(`Error fetching wallet active status \n%o`, error)
         err.handle(error, callback)
     }
 }

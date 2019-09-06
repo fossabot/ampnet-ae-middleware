@@ -7,12 +7,13 @@ let util = require('../ae/util')
 let err = require('../error/errors')
 
 let config = require('../config')
+let logger = require('../logger')(module)
 
 async function mint(call, callback) {
-    console.log(`\nReceived request to generate minting of ${call.request.amount} tokens to wallet with txHash ${call.request.toTxHash}`)
+    logger.debug(`Received request to generate minting of ${call.request.amount} tokens to wallet with txHash ${call.request.toTxHash}`)
     try {
         let record = await repo.findByHashOrThrow(call.request.toTxHash)
-        console.log(`Address represented by given hash: ${record.wallet}`)
+        logger.debug(`Address represented by given hash: ${record.wallet}`)
         let callData = await codec.eur.encodeMint(record.wallet, util.eurToToken(call.request.amount))
         let tx = await client.instance().contractCallTx({
             callerId: config.get().contracts.eur.owner,
@@ -22,19 +23,19 @@ async function mint(call, callback) {
             gas: 10000,
             callData: callData
         })
-        console.log(`Successfully generated mint transaction: ${tx}`)
+        logger.debug(`Successfully generated mint transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        console.log(`Error while generating mint transaction: ${error}`)
+        logger.error(`Error while generating mint transaction \n%o`, error)
         err.handle(error, callback)
     }
 }
 
 async function approveWithdraw(call, callback) {
-    console.log(`\nReceived request to generate withdraw approval of ${call.request.amount} tokens from wallet with txHash ${call.request.fromTxHash}`)
+    logger.debug(`Received request to generate withdraw approval of ${call.request.amount} tokens from wallet with txHash ${call.request.fromTxHash}`)
     try {
         let record = await repo.findByHashOrThrow(call.request.fromTxHash)
-        console.log(`Address represented by given hash: ${record.wallet}`)
+        logger.debug(`Address represented by given hash: ${record.wallet}`)
         let amount = util.eurToToken(call.request.amount)
         let callData = await codec.eur.encodeApprove(config.get().contracts.eur.owner, amount)
         let tx = await client.instance().contractCallTx({
@@ -45,21 +46,21 @@ async function approveWithdraw(call, callback) {
             gas: 10000,
             callData: callData
         })
-        console.log(`Successfully generated approve withdraw transaction: ${tx}`)
+        logger.debug(`Successfully generated approve withdraw transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        console.log(`Error while withdraw approve transaction: ${error}`)
+        logger.error(`Error while withdraw approve transaction \n%o`, error)
         err.handle(error, callback)
     }
 }
 
 async function burnFrom(call, callback) {
-    console.log(`\nReceived request to generate burning of tokens from wallet with txHash ${call.request.burnFromTxHash}`)
+    logger.debug(`Received request to generate burning of tokens from wallet with txHash ${call.request.burnFromTxHash}`)
     try {
         let record = await repo.findByHashOrThrow(call.request.burnFromTxHash)
-        console.log(`Address represented by given hash: ${record.wallet}`)
+        logger.debug(`Address represented by given hash: ${record.wallet}`)
         let amount = await allowance(record.wallet)
-        console.log(`Amount to burn: ${amount}`)
+        logger.debug(`Amount to burn: ${amount}`)
         let callData = await codec.eur.encodeBurnFrom(record.wallet, amount)
         let tx = await client.instance().contractCallTx({
             callerId: config.get().contracts.eur.owner,
@@ -69,19 +70,19 @@ async function burnFrom(call, callback) {
             gas: 10000,
             callData: callData
         })
-        console.log(`Successfully generated burn transaction: ${tx}`)
+        logger.debug(`Successfully generated burn transaction: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        console.log(`Error while generating burn transaction: ${error}`)
+        logger.error(`Error while generating burn transaction \n%o`, error)
         err.handle(error, callback)
     }
 }
 
 async function balance(call, callback) {
-    console.log(`\nReceived request to fetch balance of wallet with txHash ${call.request.walletTxHash}`)
+    logger.debug(`Received request to fetch balance of wallet with txHash ${call.request.walletTxHash}`)
     try {
         let tx = await repo.findByHashOrThrow(call.request.walletTxHash)
-        console.log(`Address represented by given hash: ${tx.wallet}\n`)
+        logger.debug(`Address represented by given hash: ${tx.wallet}`)
         let result = await client.instance().contractCallStatic(
             contracts.eurSource,
             config.get().contracts.eur.address,
@@ -90,21 +91,21 @@ async function balance(call, callback) {
         )
         let resultDecoded = await result.decode()
         let resultInEur = util.tokenToEur(resultDecoded)
+        logger.debug(`Successfully fetched balance: ${resultInEur}`)
         callback(null, { balance: resultInEur })
     } catch (error) {
-        console.log(error)
-        console.log(`Error while fetching balance: ${error}`)
+        logger.error(`Error while fetching balance \n%o`, error)
         err.handle(error, callback)
     }
 }
 
 async function invest(call, callback) {
-    console.log(`\nReceived request to generate invest transaction.\Caller: ${call.request.fromTxHash}\nProject: ${call.request.projectTxHash}\nAmount: ${amount}`)
+    logger.debug(`Received request to generate invest transaction. Caller: ${call.request.fromTxHash}; Project: ${call.request.projectTxHash}; Amount: ${amount}`)
     try {
         let investor = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
-        console.log(`Investor address: ${investor}`)
+        logger.debug(`Investor address: ${investor}`)
         let project = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
-        console.log(`Project address: ${project}`)
+        logger.debug(`Project address: ${project}`)
         let amount = util.eurToToken(call.request.amount)
         let callData = await codec.eur.encodeApprove(project, amount)
         let tx = await client.instance().contractCallTx({
@@ -115,10 +116,10 @@ async function invest(call, callback) {
             gas: 10000,
             callData: callData
         })
-        console.log(`Successfully generated invest tx: ${tx}`)
+        logger.debug(`Successfully generated invest tx: ${tx}`)
         callback(null, { tx: tx })
     } catch (error) {
-        console.log(`Error while generating invest transaction: ${error}`)
+        logger.error(`Error while generating invest transaction \n%o`, error)
         err.handle(error, callback)
     }
 }

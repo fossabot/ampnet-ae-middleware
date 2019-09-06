@@ -53,7 +53,6 @@ function handle(error, callback) {
     } else if (typeof error.message !== 'undefined' && typeof error.code !== 'undefined') {
         callback(error, null)
     } else {
-        console.log("error", error)
         callback(generate(type.GENERIC_ERROR), null)
     }
 }

@@ -1,5 +1,13 @@
 let util = require('../ae/util')
 
+let ClsNamespace = "ampnet-ae-middleware"
+
+let Environment = {
+    LOCAL: "local",
+    TESTNET: "testnet",
+    MAINNET: "mainnet"
+}
+
 let TxType = {
     WALLET_CREATE: "WALLET_CREATE",
     ORG_CREATE: "ORG_CREATE",
@@ -95,6 +103,8 @@ function txTypeToGrpc(type) {
 }
 
 module.exports = {
+    Environment,
+    ClsNamespace,
     TxType,
     TxState,
     WalletType,
