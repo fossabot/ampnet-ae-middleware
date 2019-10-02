@@ -19,6 +19,7 @@ async function get() {
     let grpc = getGrpc()
     let http = getHttp()
     let db = getDb()
+    let queueDb = getQueueDb()
     return {
         env: process.env.NODE_ENV,
         node: node,
@@ -27,6 +28,7 @@ async function get() {
         grpc: grpc,
         http: http,
         db: db,
+        queueDb: queueDb,
         giftAmount: process.env.GIFT_AMOUNT || 0.3
     }
 }
@@ -191,7 +193,7 @@ function getDb() {
     
     var poolMin = 2
     var poolMax = 10
-    var idleTimeoutMillis = 30000 
+    var idleTimeoutMillis = 30000
     
     host = process.env.DB_HOST || ((process.env.NODE_ENV == Environment.LOCAL) ? "localhost" : "db")
     port = process.env.DB_PORT || "5432"
@@ -233,6 +235,43 @@ function getDb() {
         migrations: {
             directory: path.join(__dirname, '..', '..', 'db', 'migrations'),
         }
+    }
+}
+
+function getQueueDb() {
+    var host
+    var user
+    var password
+    var port
+    var database
+    
+    host = process.env.QUEUE_DB_HOST || ((process.env.NODE_ENV == Environment.LOCAL) ? "localhost" : "db")
+    port = process.env.QUEUE_DB_PORT || "5432"
+
+    switch (process.env.NODE_ENV) {
+        case Environment.LOCAL:
+            user = process.env.QUEUE_DB_USER || "ae_middleware_local"
+            password = process.env.QUEUE_DB_PASSWORD || "password"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_local"
+            break
+        case Environment.TESTNET:
+            user = process.env.QUEUE_DB_USER || "ae_middleware_testnet"
+            password = process.env.QUEUE_DB_PASSWORD || "password"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_testnet"
+            break
+        case Environment.MAINNET:
+            user = process.env.QUEUE_DB_USER || "ae_middleware_mainnet"
+            password = process.env.QUEUE_DB_PASSWORD || "password"
+            database = process.env.QUEUE_DB_NAME || "ae_middleware_mainnet"
+            break
+    }
+
+    return {
+        host: host,
+        user: user,
+        password: password,
+        port: port,
+        database: database
     }
 }
 

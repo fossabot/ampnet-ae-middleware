@@ -52,6 +52,12 @@ let WalletType = {
     PROJECT: "PROJECT"
 }
 
+let SupervisorJob = {
+    SEND_FUNDS: "SEND_FUNDS",
+    CALL_INVEST: "CALL_INVEST",
+    CALL_PAYOUT_SHARES: "CALL_PAYOUT_SHARES"
+}
+
 let SupervisorStatus = {
     NOT_REQUIRED: "NOT_REQUIRED",
     REQUIRED: "REQUIRED",
@@ -108,6 +114,7 @@ module.exports = {
     TxType,
     TxState,
     WalletType,
+    SupervisorJob,
     SupervisorStatus,
     txTypeValues,
     txStateValues,

@@ -9,6 +9,8 @@ let logger = require('../logger')(module)
 let codec = require('../ae/codec')
 let util = require('../ae/util')
 let err = require('../error/errors')
+let txProcessor = require('./transaction-processor')
+let supervisor = require('../supervisor')
 let ErrorType = err.type
 
 let { TxState, TxType, WalletType, SupervisorStatus } = require('../enums/enums')
@@ -19,7 +21,19 @@ async function postTransaction(call, callback) {
         let tx = call.request.data
         await performSecurityChecks(tx)
         let result = await client.instance().sendTransaction(tx, { waitMined: false })
-        processTransaction(result.hash)
+        txProcessor.process(result.hash).then(
+            records => {
+                records.forEach(record => {
+                    if (record.supervisor_status == SupervisorStatus.REQUIRED) {
+                        logger.info('Supervisor action required. Creating a job.')
+                        supervisor.publishJobFromTx(record)
+                    }
+                })
+            },
+            error => {
+                logger.error(`Processing of transaction ${result.hash} failed with error: \n%o`, error)
+            }
+        )
         logger.debug(`Transaction successfully broadcasted! Tx hash: ${result.hash}`)
         callback(null, { txHash: result.hash })
     } catch(error) {
@@ -147,49 +161,27 @@ async function getInvestmentsInProject(call, callback) {
     }
 }
 
-async function processTransaction(hash) {
-    try {
-        logger.info(`Processing transaction ${hash}`)
-        await repo.saveHash(hash)
-        let poll = await client.instance().poll(hash)
-        let info = await client.instance().getTxInfo(hash)
-        logger.info(`Fetched tx info \n%o`, info)
-        if (info.returnType == 'ok') {
-            logger.info(`Transaction ${hash} mined with return type OK.`)
-            await handleTransactionMined(info, poll)
-        } else {
-            logger.info(`Transaction ${hash} mined with return type ${info.returnType}.`)
-            await handleTransactionFailed(info, hash)
-        }
-    } catch(error) {
-        logger.error(`Error while processing transaction \n%o`, error)
-    }
-}
 
-async function handleTransactionMined(info, poll) {
-    logger.info(`Handling mined tx success case.`)
-    for (event of info.log) {
-        logger.info(`Parsing event ${event.topics[0]}`)
-        type = enums.fromEvent(event.topics[0], poll)
-        logger.info(`Parsed event type: ${type}`)
-        tx = await updateTransactionState(info, poll, type)
-        logger.info(`Updated state. Saved tx: \n%o`, tx)
-        if (tx.supervisor_status == SupervisorStatus.REQUIRED) {
-            logger.info('Supervisor action required. Starting job.')
-            await handleSupervisorAction(tx)
-        }
-    }
-}
 
-async function handleTransactionFailed(txInfo, hash) {
-    logger.warn(`Handling mined tx failed case.`)
-    decodedError = await err.decode(txInfo)
-    logger.warn(`Decoded error: ${decodedError}`)
-    await repo.update(hash, {
-        state: TxState.FAILED,
-        error_message: decodedError
-    })
-    logger.warn(`Updated tx state to failed.`)
+async function performSecurityChecks(data) {
+    let txMetadata = TxBuilder.unpackTx(data)
+    if (txMetadata.txType != 'signedTx') {
+        throw err.generate(ErrorType.TX_NOT_SIGNED)
+    }
+    let unpackedTx = txMetadata.tx.encodedTx
+
+    switch (unpackedTx.txType) {
+        case 'contractCallTx':
+            await checkTxCaller(unpackedTx.tx.callerId)
+            await checkTxCallee(unpackedTx.tx.contractId)
+            break
+        case 'contractCreateTx':
+            await checkTxCaller(unpackedTx.tx.ownerId)
+            await checkContractData(unpackedTx.tx)
+            break
+        default:
+            throw err.generate(ErrorType.GENERIC_ERROR, `Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
+    }
 }
 
 async function handleSupervisorAction(tx) {
@@ -219,7 +211,7 @@ async function handleSupervisorAction(tx) {
             logger.info(`SUPERVISOR: Call result: \n%o`, result)
             await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
             logger.info(`SUPERVISOR: Updated SUPERVISOR_STATUS in original transaction.`)
-            processTransaction(result.hash)
+            process(result.hash)
             break 
         case TxType.START_REVENUE_PAYOUT:
             contract = util.enforceCtPrefix(tx.to_wallet)
@@ -237,7 +229,7 @@ async function handleSupervisorAction(tx) {
                 shouldPayoutAnotherBatch = await batchPayout.decode()
                 logger.info(`SUPERVISOR: Need to call again to payout next batch? ${shouldPayoutAnotherBatch}`)
                 batchCount++
-                processTransaction(batchPayout.hash)
+                process(batchPayout.hash)
             } while(shouldPayoutAnotherBatch)
             logger.info(`SUPERVISOR: All batches payed out.`)
             await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
@@ -245,149 +237,6 @@ async function handleSupervisorAction(tx) {
             break
         default:
             throw new Error(`Supervisor cannot process provided transaction type: ${tx.type}`)
-    }
-}
-
-async function updateTransactionState(info, poll, type) {
-    logger.info(`Updating transaction state in database.`)
-    switch (type) {
-        case TxType.WALLET_CREATE:
-            address = util.decodeAddress(event.topics[1])
-            walletType = await repo.getWalletTypeOrThrow(address)
-            supervisorStatus = (walletType == WalletType.USER) ? SupervisorStatus.REQUIRED : SupervisorStatus.NOT_REQUIRED
-            return repo.update(poll.hash, {
-                from_wallet: info.callerId,
-                to_wallet: address,
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: supervisorStatus,
-                type: TxType.WALLET_CREATE,
-                wallet: address,
-                wallet_type: walletType,
-                processed_at: new Date()
-            })
-        case TxType.ORG_CREATE:
-            return repo.update(poll.hash, {
-                from_wallet: info.callerId,
-                to_wallet: util.enforceAkPrefix(info.contractId),
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: SupervisorStatus.NOT_REQUIRED,
-                type: TxType.ORG_CREATE,
-                processed_at: new Date()
-            })
-        case TxType.PROJ_CREATE:
-            return repo.update(poll.hash, {
-                from_wallet: info.callerId,
-                to_wallet: util.enforceAkPrefix(info.contractId),
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: SupervisorStatus.NOT_REQUIRED,
-                type: TxType.PROJ_CREATE,
-                processed_at: new Date()
-            })
-        case TxType.DEPOSIT:
-            address = util.decodeAddress(event.topics[1])
-            amount = util.tokenToEur(event.topics[2])
-            return repo.update(poll.hash, {
-                from_wallet: info.callerId,
-                to_wallet: address,
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: SupervisorStatus.NOT_REQUIRED,
-                type: TxType.DEPOSIT,
-                amount: amount,
-                processed_at: new Date()
-            })
-        case TxType.APPROVE:
-            spender = util.decodeAddress(event.topics[1])
-            amount = util.tokenToEur(event.topics[2])
-            type = (spender == config.get().contracts.eur.owner) ? TxType.APPROVE_USER_WITHDRAW : TxType.APPROVE_INVESTMENT
-            supervisorStatus = (type == TxType.APPROVE_INVESTMENT) ? SupervisorStatus.REQUIRED : SupervisorStatus.NOT_REQUIRED
-            return repo.update(poll.hash, {
-                from_wallet: info.callerId,
-                to_wallet: spender,
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: supervisorStatus,
-                type: type,
-                amount: amount,
-                processed_at: new Date()
-            })
-        case TxType.WITHDRAW:
-            withdrawFrom = util.decodeAddress(event.topics[1])
-            amount = util.tokenToEur(event.topics[2])
-            return repo.update(poll.hash, {
-                from_wallet: withdrawFrom,
-                to_wallet: info.callerId,
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: SupervisorStatus.NOT_REQUIRED,
-                type: TxType.WITHDRAW,
-                amount: amount,
-                processed_at: new Date()
-            })
-        case TxType.INVEST:
-            investor = util.decodeAddress(event.topics[1])
-            amount = util.tokenToEur(event.topics[2])
-            return repo.update(poll.hash, {
-                from_wallet: investor,
-                to_wallet: util.enforceAkPrefix(info.contractId),
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: SupervisorStatus.NOT_REQUIRED,
-                type: TxType.INVEST,
-                amount: amount,
-                processed_at: new Date()
-            })
-        case TxType.START_REVENUE_PAYOUT:
-            amount = util.tokenToEur(event.topics[1])
-            return repo.update(poll.hash, {
-                from_wallet: info.callerId,
-                to_wallet: util.enforceAkPrefix(info.contractId),
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: SupervisorStatus.REQUIRED,
-                type: TxType.START_REVENUE_PAYOUT,
-                amount: amount,
-                processed_at: new Date()
-            })
-        case TxType.SHARE_PAYOUT:
-            investor = util.decodeAddress(event.topics[1])
-            share = util.tokenToEur(event.topics[2])
-            return repo.update(poll.hash, {
-                from_wallet: util.enforceAkPrefix(info.contractId),
-                to_wallet: investor,
-                input: poll.tx.callData,
-                state: TxState.MINED,
-                supervisor_status: SupervisorStatus.NOT_REQUIRED,
-                type: TxType.SHARE_PAYOUT,
-                amount: share,
-                processed_at: new Date()
-            })
-        default:
-            throw new Error(`Unknown transaction processed! Hash: ${poll.hash}`)
-    }
-}
-
-async function performSecurityChecks(data) {
-    let txMetadata = TxBuilder.unpackTx(data)
-    if (txMetadata.txType != 'signedTx') {
-        throw err.generate(ErrorType.TX_NOT_SIGNED)
-    }
-    let unpackedTx = txMetadata.tx.encodedTx
-
-    switch (unpackedTx.txType) {
-        case 'contractCallTx':
-            await checkTxCaller(unpackedTx.tx.callerId)
-            await checkTxCallee(unpackedTx.tx.contractId)
-            break
-        case 'contractCreateTx':
-            await checkTxCaller(unpackedTx.tx.ownerId)
-            await checkContractData(unpackedTx.tx)
-            break
-        default:
-            throw err.generate(ErrorType.GENERIC_ERROR, `Error posting transaction. Expected transaction of type contractCall or contractCreate but got ${unpackedTx.txType}. Aborting.`)
     }
 }
 
