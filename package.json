@@ -1,6 +1,6 @@
 {
   "name": "node-grpc-middleware",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "dependencies": {
     "@aeternity/aepp-sdk": "^5.0.0",
     "@grpc/proto-loader": "^0.4.0",
@@ -24,7 +24,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "NODE_ENV=local ./node_modules/mocha/bin/mocha --timeout 200000"
+    "test": "NODE_ENV=local ./node_modules/mocha/bin/mocha --timeout 120000"
   },
   "devDependencies": {
     "chai": "^4.2.0",
