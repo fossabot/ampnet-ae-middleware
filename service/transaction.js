@@ -198,7 +198,7 @@ async function handleSupervisorAction(tx) {
             if (tx.wallet_type == WalletType.USER) {
                 giftAmountAe = config.get().giftAmount
                 if (giftAmountAe > 0) {
-                    await client.instance().spend(giftAmountAe * 1000000000000000000, tx.wallet)
+                    await client.sender().spend(giftAmountAe * 1000000000000000000, tx.wallet)
                     logger.info(`SUPERVISOR: Transferred ${giftAmountAe}AE to user with wallet ${tx.wallet} (welcome gift)`)
                     await repo.update(tx.hash, { supervisor_status: SupervisorStatus.PROCESSED })
                     logger.info(`SUPERVISOR: Updated SUPERVISOR_STATUS in original transaction.`)
@@ -210,7 +210,7 @@ async function handleSupervisorAction(tx) {
         case TxType.APPROVE_INVESTMENT:
             contract = util.enforceCtPrefix(tx.to_wallet)
             logger.info(`SUPERVISOR: Calling invest() on Project Contract ${contract}`)
-            result = await client.instance().contractCall(
+            result = await client.sender().contractCall(
                 contracts.projSource,
                 contract,
                 enums.functions.proj.invest,
@@ -227,7 +227,7 @@ async function handleSupervisorAction(tx) {
             batchCount = 1 
             do {
                 logger.info(`Call #${batchCount} on payout_revenue_shares()`)
-                batchPayout = await client.instance().contractCall(
+                batchPayout = await client.sender().contractCall(
                     contracts.projSource,
                     contract,
                     enums.functions.proj.payoutRevenueSharesBatch,

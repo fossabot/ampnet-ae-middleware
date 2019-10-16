@@ -1,5 +1,5 @@
 let url = require('url')
-let { Transaction, MemoryAccount, ChainNode, ContractCompilerAPI, Contract } = require('@aeternity/aepp-sdk')
+let { Transaction, MemoryAccount, ChainNode, ContractCompilerAPI, Contract, Universal } = require('@aeternity/aepp-sdk')
 
 let config = require('../config')
 
@@ -15,13 +15,26 @@ async function init() {
         networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
     })
+
+    aeSender = await Universal({
+        url: config.get().node.url,
+        internalUrl: config.get().node.internalUrl,
+        keypair: config.get().supervisor,
+        networkId: config.get().node.networkId,
+        compilerUrl: config.get().node.compilerUrl
+    })
 }
 
 function instance() {
     return aeInstance
 }
 
+function sender() {
+    return aeSender
+}
+
 module.exports = {
     init,
-    instance
+    instance,
+    sender
 }

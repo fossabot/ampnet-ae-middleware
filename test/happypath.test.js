@@ -94,8 +94,8 @@ describe('Main tests', function() {
         let investTxHash = await grpcClient.postTransaction(investTxSigned)
         await util.waitMined(investTxHash)
 
-        console.log("Wait few seconds for supervisor to process investment")
-        await util.sleep(5000)
+        console.log("Wait for next block to be mined (for investment to be fully processed)")
+        await util.waitNextBlock(investTxHash)
 
         let bobBalanceAfterInvestment = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterInvestment, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount)
@@ -106,8 +106,8 @@ describe('Main tests', function() {
         let revenuePayoutTxHash = await grpcClient.postTransaction(revenuePayoutTxSigned)
         await util.waitMined(revenuePayoutTxHash)
         
-        console.log("Wait few seconds for supervisor to process revenue share payout")
-        await util.sleep(5000)
+        console.log("Wait for next block to be mined (for supervisor to process revenue share payout)")
+        await util.waitNextBlock(revenuePayoutTxHash)
 
         let bobBalanceAfterRevenuePayout = await grpcClient.getBalance(addBobWalletTxHash)
         assert.equal(bobBalanceAfterRevenuePayout, mintToBobAmount - withdrawFromBobAmount - bobInvestmentAmount + revenueToPayout)
