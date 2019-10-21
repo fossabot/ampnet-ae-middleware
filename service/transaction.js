@@ -414,15 +414,17 @@ async function checkTxCallee(calleeId) {
 }
 
 async function checkContractData(tx) {
+    let orgBytecode = contracts.getOrgCompiled().bytecode
+    let projBytecode = contracts.getProjCompiled().bytecode
     switch (tx.code) {
-        case contracts.getOrgCompiled().bytecode:
-            callData = await codec.decodeDataBySource(contracts.orgSource, "init", tx.callData)
+        case orgBytecode:
+            callData = await codec.decodeDataByBytecode(orgBytecode, tx.callData)
             if (callData.arguments[0].value != config.get().contracts.coop.address) {
                 throw err.generate(ErrorType.GROUP_INVALID_COOP_ARG)
             }
             break
-        case contracts.getProjCompiled().bytecode:
-            callData = await codec.decodeDataBySource(contracts.projSource, "init", tx.callData)
+        case projBytecode:
+            callData = await codec.decodeDataByBytecode(projBytecode, tx.callData)
             orgAddress = callData.arguments[0].value
             isOrgActive = await isWalletActive(orgAddress)
             if (!isOrgActive) {

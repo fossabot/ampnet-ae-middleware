@@ -12,7 +12,6 @@ async function init() {
         url: config.get().node.url,
         internalUrl: config.get().node.internalUrl,
         keypair: config.get().supervisor,
-        networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
     })
 
@@ -20,7 +19,6 @@ async function init() {
         url: config.get().node.url,
         internalUrl: config.get().node.internalUrl,
         keypair: config.get().supervisor,
-        networkId: config.get().node.networkId,
         compilerUrl: config.get().node.compilerUrl
     })
 }
