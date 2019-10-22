@@ -12,14 +12,16 @@ async function init() {
         url: config.get().node.url,
         internalUrl: config.get().node.internalUrl,
         keypair: config.get().supervisor,
-        compilerUrl: config.get().node.compilerUrl
+        compilerUrl: config.get().node.compilerUrl,
+        networkId: config.get().networkId
     })
 
     aeSender = await Universal({
         url: config.get().node.url,
         internalUrl: config.get().node.internalUrl,
         keypair: config.get().supervisor,
-        compilerUrl: config.get().node.compilerUrl
+        compilerUrl: config.get().node.compilerUrl,
+        networkId: config.get().networkId
     })
 }
 
