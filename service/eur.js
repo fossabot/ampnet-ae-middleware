@@ -97,8 +97,8 @@ async function balance(call, callback) {
 }
 
 async function invest(call, callback) {
-    logger.debug(`Received request to generate invest transaction. Caller: ${call.request.fromTxHash}; Project: ${call.request.projectTxHash}; Amount: ${amount}`)
     try {
+        logger.debug(`Received request to generate invest transaction. Caller: ${call.request.fromTxHash}; Project: ${call.request.projectTxHash}; Amount: ${call.request.amount}`)
         let investor = (await repo.findByHashOrThrow(call.request.fromTxHash)).wallet
         logger.debug(`Investor address: ${investor}`)
         let project = (await repo.findByHashOrThrow(call.request.projectTxHash)).wallet
