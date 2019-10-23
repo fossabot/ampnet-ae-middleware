@@ -80,7 +80,7 @@ async function getTransactionInfo(call, callback) {
             type: records[0].type,
             amount: records[0].amount
         }
-        logger.debug("Successfully fetched transaction info \n%o", info)
+        logger.debug(`Successfully fetched transaction info, state: ${info.state}`)
         callback(null, info)
     } catch (error) {
         logger.error(`Error while fetching transaction info: \n%o`, error)
