@@ -68,6 +68,26 @@ async function getPortfolio(call, callback) {
     }
 }
 
+async function getTransactionInfo(call, callback) {
+    logger.debug(`Received request to fetch info for transaction with hash ${call.request.txHash} `)
+    try {
+        let records = await repo.get({ hash: call.request.txHash })
+        let info = {
+            hash: records[0].hash,
+            fromWallet: records[0].from_wallet,
+            toWallet: records[0].to_wallet,
+            state: records[0].state,
+            type: records[0].type,
+            amount: records[0].amount
+        }
+        logger.debug("Successfully fetched transaction info \n%o", info)
+        callback(null, info)
+    } catch (error) {
+        logger.error(`Error while fetching transaction info: \n%o`, error)
+        err.handle(error, callback)
+    }
+}
+
 async function getTransactions(call, callback) {
     logger.debug(`Received request to fetch transactions for user with wallet txHash ${call.request.txHash}`)
     try {
@@ -458,5 +478,6 @@ module.exports = {
     postTransaction, 
     getPortfolio, 
     getTransactions,
-    getInvestmentsInProject
+    getInvestmentsInProject,
+    getTransactionInfo
 }
