@@ -223,7 +223,8 @@ function getDb() {
             user: user,
             password: password,
             port: port,
-            database: database
+            database: database,
+            ssl: true
         },
         pool: {
             min: poolMin,
