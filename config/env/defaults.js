@@ -188,6 +188,7 @@ function getDb() {
     var password
     var port
     var database
+    var ssl
     
     var poolMin = 2
     var poolMax = 10
@@ -215,6 +216,8 @@ function getDb() {
             database = process.env.DB_NAME || "ae_middleware_mainnet"
             break
     }
+    sslString = process.env.DB_SSL || "false"
+    ssl = (sslString == "true")
 
     return {
         client: 'postgresql',
@@ -224,7 +227,7 @@ function getDb() {
             password: password,
             port: port,
             database: database,
-            ssl: true
+            ssl: ssl
         },
         pool: {
             min: poolMin,
